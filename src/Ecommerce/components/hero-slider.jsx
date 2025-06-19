@@ -26,7 +26,7 @@ export const HeroSlider = () => {
     {
       id: 2,
       image: slide2,
-      subtitle: "New Collection",
+      subtitle: "NUEVA ACTUALIZACION",
       title: "Fall-Winter 2021",
       buttonText: "Shop the collection",
       href: "/shop"
