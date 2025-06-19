@@ -19,7 +19,7 @@ export const HeroSlider = () => {
       id: 1,
       image: slide1,
       subtitle: "Nuevo",
-      title: "Klever Perez",
+      title: "ROPA CARA",
       buttonText: "Shop the menswear",
       href: "/shop"
     },
