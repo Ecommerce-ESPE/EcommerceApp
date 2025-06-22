@@ -1,14 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-
-//IMPORTS
-import {EcommerceApp} from './EcommerceApp'
 import { BrowserRouter } from 'react-router-dom';
+import { CartProvider } from './Ecommerce/context/cartContext';
+import { EcommerceApp } from './EcommerceApp';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
-      <EcommerceApp />
-    </BrowserRouter>
+    <CartProvider>
+      <BrowserRouter>
+        <EcommerceApp />
+      </BrowserRouter>
+    </CartProvider>
   </StrictMode>,
 )

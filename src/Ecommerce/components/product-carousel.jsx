@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { tns } from 'tiny-slider';
 import 'tiny-slider/dist/tiny-slider.css';
 
@@ -11,27 +11,33 @@ import product5 from '../../assets/img/ecommerce/shop/06.jpg';
 import product6 from '../../assets/img/ecommerce/shop/08.jpg';
 import product7 from '../../assets/img/ecommerce/shop/12.jpg';
 
+
+
+
+
 export const ProductCarousel = () => {
   const sliderRef = useRef(null);
   const pagerRef = useRef(null);
   const sliderInstance = useRef(null);
 
   // Datos de los productos con importación correcta de imágenes
-  const products = [
+  const [products, setProducts] = useState([
     {
       id: 1,
       image: product1,
       title: 'Black and white sport cap',
       price: '$18.15',
       rating: 5,
-      wishlist: true
+      link: '/',
+      wishlist: false
     },
     {
       id: 2,
       image: product2,
       title: 'Metal bridge sunglasses',
       price: '$15.95',
-      rating: 0,
+      rating: 1,
+      link: '/',
       wishlist: true
     },
     {
@@ -40,6 +46,7 @@ export const ProductCarousel = () => {
       title: 'Green baby romper',
       price: '$20.40',
       rating: 4,
+      link: '/',
       wishlist: true
     },
     {
@@ -48,6 +55,7 @@ export const ProductCarousel = () => {
       title: 'Mid-rise slim cropped fit jeans',
       price: '$40.00',
       rating: 0,
+      link: '/',
       wishlist: true
     },
     {
@@ -56,6 +64,7 @@ export const ProductCarousel = () => {
       title: 'Red dangle earrings',
       price: '$29.95',
       rating: 3,
+      link: '/',
       wishlist: true
     },
     {
@@ -64,6 +73,7 @@ export const ProductCarousel = () => {
       title: 'Baby shoes with laces',
       price: '$30.75',
       rating: 0,
+      link: '/',
       wishlist: true
     },
     {
@@ -72,9 +82,49 @@ export const ProductCarousel = () => {
       title: 'Men fashion gray shoes',
       price: '$85.00',
       rating: 0,
+      link: '/',
       wishlist: true
     }
-  ];
+  ]);
+
+  const toggleWishlist = async (productId) => {
+    // Primero actualizamos el estado local para una respuesta inmediata
+    setProducts(prevProducts => 
+      prevProducts.map(product => 
+        product.id === productId 
+          ? { ...product, wishlist: !product.wishlist } 
+          : product
+      )
+    );
+
+    // Aquí es donde luego pondrás la llamada a la API
+    try {
+      // Ejemplo de cómo sería con la API:
+      // const response = await wishlistService.toggle(productId);
+      // if (!response.success) {
+      //   // Si falla, revertimos el cambio
+      //   setProducts(prevProducts => 
+      //     prevProducts.map(product => 
+      //       product.id === productId 
+      //         ? { ...product, wishlist: !product.wishlist } 
+      //         : product
+      //     )
+      // );
+      //   alert('Error al actualizar la lista de deseos');
+      // }
+    } catch (error) {
+      console.error('Error al actualizar wishlist:', error);
+      // Revertir cambio si hay error
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? { ...product, wishlist: !product.wishlist } 
+            : product
+        )
+      );
+    }
+  };
+
 
   useEffect(() => {
     // Solo ejecutar en el navegador
@@ -161,6 +211,8 @@ export const ProductCarousel = () => {
     };
   }, []);
 
+  //Starts render
+  // Función para renderizar estrellas
   const renderStars = (rating) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -182,7 +234,7 @@ export const ProductCarousel = () => {
           <div key={product.id} className="tns-item">
             <div className="card card-product">
               <div className="card-product-img">
-                <a href="shop-single.html" className="card-img-top">
+                <a href={product.link} className="card-img-top">
                   <img src={product.image} alt={product.title} />
                 </a>
                 
@@ -194,7 +246,8 @@ export const ProductCarousel = () => {
                 
                 <div className="card-product-widgets-bottom">
                   <button 
-                    className="btn-wishlist ml-auto" 
+                    className={`btn-wishlist ml-auto ${product.wishlist ? 'active' : ''}`} 
+                    onClick={() => toggleWishlist(product.id)}
                     data-toggle="tooltip" 
                     data-placement="left" 
                     title="Add to wishlist"
@@ -223,15 +276,20 @@ export const ProductCarousel = () => {
 
       {/* Navegación (pager) */}
       <div className="tns-nav" ref={pagerRef} aria-label="Carousel Pagination">
-        {products.map((_, index) => (
-          <button 
-            key={index} 
-            type="button" 
-            data-nav={index}
-            aria-label={`Carousel Page ${index + 1}`}
-          />
-        ))}
-      </div>
+             {/* N paginas [0 , 1 , 2] */}
+            {[0, 1 ].map((index) => (
+              <button 
+                  key={index} 
+                  type="button" 
+                  className={`tns-nav-item ${index === 0 ? 'tns-nav-active' : ''}`}
+                  data-nav={index}
+                  aria-label={`Ir al grupo ${index + 1}`}
+                  aria-current={index === 0 ? 'true' : 'false'}
+              >
+            <span className="sr-only">Grupo {index + 1}</span>
+        </button>
+      ))}
+    </div>
     </div>
   );
 };
