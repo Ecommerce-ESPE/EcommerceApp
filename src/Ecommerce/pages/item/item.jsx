@@ -20,6 +20,7 @@ const ProductPage = ({ addToCart }) => {
       try {
         const response = await axios.get(`${API_BASE}/items/${id}`);
         setSelectedProduct(response.data.item); 
+         setLoading(false);
       } catch {
         setError('Producto no encontrado');
         setLoading(false);
