@@ -95,16 +95,32 @@ export const Checkout = () => {
     envio.find((option) => option.id === "store-pickup")
   );
 
-  // Costos adicionales
-  const costoEnvio = selectedShipping.costo;
-  const impuestos = 0.12;
-  const impuestosCalculados = subtotal * impuestos;
+  // Costos adicionale
+// 2. Descuento
+const discountAmount = discountApplied ? Number(discountApplied.amount || 0) : 0;
 
-  // Calcular total con descuento aplicado
-  const discountAmount = discountApplied
-    ? parseFloat(discountApplied.amount)
-    : 0;
-  const total = subtotal + costoEnvio + impuestosCalculados - discountAmount;
+// 3. Subtotal con descuento
+const subtotalConDescuento = Math.max(subtotal - discountAmount, 0);
+
+// 4. Impuestos sobre subtotal con descuento
+const impuestosRate = 0.12;
+const impuestosCalculados = subtotalConDescuento * impuestosRate;
+
+// 5. Costo de envío
+const costoEnvio = selectedShipping?.costo ?? 0;
+
+// 6. Total final
+const total = Math.max(subtotalConDescuento + impuestosCalculados + costoEnvio, 0);
+
+
+  // Función auxiliar para obtener el precio por priceId (stub, reemplazar con lógica real si es necesario)
+  const getPriceByPriceId = (priceId) => {
+    for (const item of cart) {
+      const variant = item.variants?.find((v) => v._id === priceId);
+      if (variant) return variant.price;
+    }
+    return 0;
+  };
 
   // Función para aplicar el descuento
   const applyDiscount = async () => {
@@ -117,16 +133,25 @@ export const Checkout = () => {
     setDiscountError("");
 
     try {
-      const itemsIds = cart.map((item) => item.id);
+      // Armar los items con productId, price y quantity
+      const cartItemsPayload = cart.map((item) => {
+        const [productId, priceId] = item.id.split("-");
+        const price = item.price || getPriceByPriceId(priceId);
+
+        return {
+          productId,
+          price: Number(price),
+          quantity: Number(item.quantity || 1),
+        };
+      });
+
       const response = await fetch(
-        "     https://backend-ecommerce-aasn.onrender.com/api/wallet/validateDiscount",
+        "http://localhost:3200/api/wallet/validateDiscount",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            items: itemsIds,
+            items: cartItemsPayload,
             discountCode,
           }),
         }
@@ -134,18 +159,14 @@ export const Checkout = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Error al validar el descuento");
-      }
-
-      if (data.valid) {
-        setDiscountApplied({
-          amount: data.discountAmount,
-          code: discountCode,
-        });
-      } else {
+      if (!response.ok || !data.valid) {
         throw new Error(data.message || "Código de descuento inválido");
       }
+
+      setDiscountApplied({
+        amount: data.discountAmount,
+        code: discountCode,
+      });
     } catch (error) {
       console.error("Error al aplicar descuento:", error);
       setDiscountError(error.message);
@@ -158,18 +179,19 @@ export const Checkout = () => {
   // Verificar autenticación al cargar
   useEffect(() => {
     // Token fijo para pruebas - ¡SOLO USAR EN DESARROLLO!
-    const TEST_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NWIyYjA5YjM1YjI0YzU5YzQ4YzE2YzAiLCJlbWFpbCI6ImFkZXZwcm9sYXRhbUBnbWFpbC5jb20iLCJpYXQiOjE3MDY0ODgxNzQsImV4cCI6MTcwOTA4MDE3NH0.9Z8ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ";
-    
+    const TEST_TOKEN =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NWIyYjA5YjM1YjI0YzU5YzQ4YzE2YzAiLCJlbWFpbCI6ImFkZXZwcm9sYXRhbUBnbWFpbC5jb20iLCJpYXQiOjE3MDY0ODgxNzQsImV4cCI6MTcwOTA4MDE3NH0.9Z8ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ3ZQZ";
+
     // Verificar si ya existe un token
     let token = localStorage.getItem("token");
-    
+
     // Si no hay token, usar el token de prueba
     if (!token) {
       token = TEST_TOKEN;
       localStorage.setItem("token", token);
       console.warn("⚠️ Se ha asignado un token de prueba automático");
     }
-    
+
     setIsAuthenticated(!!token);
 
     //const token = localStorage.getItem("token");
@@ -1364,18 +1386,24 @@ export const Checkout = () => {
                     </span>
                   </li>
                   <li className="d-flex justify-content-between mb-2">
-                    <span>Costos de envío:</span>
-                    <span>${costoEnvio.toFixed(2)}</span>
-                  </li>
-                  <li className="d-flex justify-content-between mb-2">
                     <span>Descuento:</span>
                     <span>
-                      {discountApplied ? `-$${discountAmount.toFixed(2)}` : "—"}
+                      {discountApplied
+                        ? `- $${discountAmount.toFixed(2)}`
+                        : "—"}
                     </span>
                   </li>
-                  <li className="d-flex justify-content-between">
-                    <span>Impuestos estimados:</span>
+                  <li className="d-flex justify-content-between mb-2">
+                    <span>Subtotal c/ desc:</span>
+                    <span>${subtotalConDescuento.toFixed(2)}</span>
+                  </li>
+                  <li className="d-flex justify-content-between mb-2">
+                    <span>Impuestos (12%):</span>
                     <span>${impuestosCalculados.toFixed(2)}</span>
+                  </li>
+                  <li className="d-flex justify-content-between mb-2">
+                    <span>Envío:</span>
+                    <span>${costoEnvio.toFixed(2)}</span>
                   </li>
                 </ul>
                 <div className="d-flex justify-content-between p-4">

@@ -1,33 +1,61 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Createx | E-Commerce - Home</title>
 
     <!-- SEO Meta Tags-->
-    <meta name="description" content="Createx - Multipurpose Bootstrap Template and UI Kit">
-    <meta name="keywords" content="bootstrap, business, creative agency, construction, services, e-commerce, shopping cart, mobile app showcase, multipurpose, shop, ui kit, marketing, seo, landing, html5, css3, javascript, gallery, slider, touch, creative">
-    <meta name="author" content="Createx Studio">
+    <meta
+      name="description"
+      content="Createx - Multipurpose Bootstrap Template and UI Kit"
+    />
+    <meta
+      name="keywords"
+      content="bootstrap, business, creative agency, construction, services, e-commerce, shopping cart, mobile app showcase, multipurpose, shop, ui kit, marketing, seo, landing, html5, css3, javascript, gallery, slider, touch, creative"
+    />
+    <meta name="author" content="Createx Studio" />
 
     <!-- Viewport-->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- Favicon and Touch Icons-->
-    <link rel="apple-touch-icon" sizes="180x180" href="./src/assets/img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="./src/assets/img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="./src/assets/img/favicon-16x16.png">
-    <link rel="manifest" href="./src/assets/img/site.webmanifest">
-    <link rel="mask-icon" color="#5bbad5" href="./src/assets/img/safari-pinned-tab.svg">
-    <meta name="msapplication-TileColor" content="#766df4">
-    <meta name="theme-color" content="#ffffff">
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/src/assets/img/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/src/assets/img/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/src/assets/img/favicon-16x16.png"
+    />
+    <link
+      rel="mask-icon"
+      color="#5bbad5"
+      href="/src/assets/img/safari-pinned-tab.svg"
+    />
+    <meta name="msapplication-TileColor" content="#766df4" />
+    <meta name="theme-color" content="#ffffff" />
+
     <!-- Main Theme Styles + Bootstrap-->
-    <link rel="stylesheet" media="screen" href="./src/assets/css/demo/ecommerce/theme.min.css">
-    
+    <link
+      rel="stylesheet"
+      media="screen"
+      href="/src/assets/css/demo/ecommerce/theme.min.css"
+    />
+
     <!-- Page loading styles-->
     <style>
-      .pagination{
-      margin-bottom: 0px;
-    }
+      .pagination {
+        margin-bottom: 0px;
+      }
       .cs-page-loading {
         position: fixed;
         top: 0;
@@ -36,8 +64,8 @@
         left: 0;
         width: 100%;
         height: 100%;
-        -webkit-transition: all .4s .2s ease-in-out;
-        transition: all .4s .2s ease-in-out;
+        -webkit-transition: all 0.4s 0.2s ease-in-out;
+        transition: all 0.4s 0.2s ease-in-out;
         background-color: #fff;
         opacity: 0;
         visibility: hidden;
@@ -55,8 +83,8 @@
         text-align: center;
         -webkit-transform: translateY(-50%);
         transform: translateY(-50%);
-        -webkit-transition: opacity .2s ease-in-out;
-        transition: opacity .2s ease-in-out;
+        -webkit-transition: opacity 0.2s ease-in-out;
+        transition: opacity 0.2s ease-in-out;
         opacity: 0;
       }
       .cs-page-loading.active > .cs-page-loading-inner {
@@ -72,13 +100,13 @@
         display: inline-block;
         width: 2.75rem;
         height: 2.75rem;
-        margin-bottom: .75rem;
+        margin-bottom: 0.75rem;
         vertical-align: text-bottom;
-        background-color: #cfcfd1; 
+        background-color: #cfcfd1;
         border-radius: 50%;
         opacity: 0;
-        -webkit-animation: spinner .75s linear infinite;
-        animation: spinner .75s linear infinite;
+        -webkit-animation: spinner 0.75s linear infinite;
+        animation: spinner 0.75s linear infinite;
       }
       @-webkit-keyframes spinner {
         0% {
@@ -108,11 +136,13 @@
     <script>
       (function () {
         window.onload = function () {
-          var preloader = document.querySelector('.cs-page-loading');
-          preloader.classList.remove('active');
-          setTimeout(function () {
-            preloader.remove();
-          }, 1000);
+          var preloader = document.querySelector(".cs-page-loading");
+          if (preloader) {
+            preloader.classList.remove("active");
+            setTimeout(function () {
+              preloader.remove();
+            }, 1000);
+          }
         };
       })();
     </script>
@@ -137,36 +167,34 @@
         line-height: 3rem;
         text-align: center;
         text-decoration: none;
-        box-shadow: 0px 10px 15px 0px rgba(30,33,44,0.10);
+        box-shadow: 0px 10px 15px 0px rgba(30, 33, 44, 0.1);
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-       <!-- Back to top button-->
-       <a class="btn-scroll-top" href="#top" data-scroll data-fixed-element>
-        <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Top</span>
-        <i class="btn-scroll-top-icon cxi-angle-up"></i>
-      </a>
-
-      <!-- Vendor scripts: js libraries and plugins-->
-      <script src="./src/assets/vendor/jquery/dist/jquery.slim.min.js"></script>
-      <script src="./src/assets/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-      <script src="./src/assets/vendor/smooth-scroll/dist/smooth-scroll.polyfills.min.js"></script>
-  
-      <!-- Main theme script-->
-      <script src="./src/assets/js/theme.min.js"></script>
-
-      <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"></script>
-  
-  
-    <!--SLIDER CATEGORY-->
-    <script type="module" src="./src/assets/js/nouislider.min.js"></script>
-    <script type="module" src="./src/assets/vendor/tiny-slider/dist/min/tiny-slider.js"></script>
-    <!-- Main theme script-->
-    <script type="module" src="./src/assets/js/simplebar.min.js"></script>
-  
-    </body>
+    <!-- Back to top button-->
+    <a class="btn-scroll-top" href="#top" data-scroll data-fixed-element>
+      <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2"
+        >Top</span
+      >
+      <i class="btn-scroll-top-icon cxi-angle-up"></i>
+    </a>
+    <script src="/src/assets/plugins/jquery-1.12.4.min.js"></script>
+    <script src="/src/assets/plugins/owl-carousel/owl.carousel.min.js"></script>
+    <script src="/src/assets/plugins/bootstrap4/js/bootstrap.min.js"></script>
+    <script src="/src/assets/plugins/imagesloaded.pkgd.js"></script>
+    <script src="/src/assets/plugins/masonry.pkgd.min.js"></script>
+    <script src="/src/assets/plugins/jquery.matchHeight-min.js"></script>
+    <script src="/src/assets/plugins/slick/slick/slick.min.js"></script>
+    <script src="/src/assets/plugins/jquery-bar-rating/dist/jquery.barrating.min.js"></script>
+    <script src="/src/assets/plugins/lightGallery-master/dist/js/lightgallery-all.min.js"></script>
+    <script src="/src/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+    <script src="/src/assets/plugins/sticky-sidebar/dist/sticky-sidebar.min.js"></script>
+    <script src="/src/assets/plugins/select2/dist/js/select2.full.min.js"></script>
+    <script src="/src/assets/js/main.js"></script>
+    <script src="/src/assets/js/nouislider.min.js"></script>
+    <script src="/src/assets/js/iziToast.min.js"></script>
+  </body>
 </html>

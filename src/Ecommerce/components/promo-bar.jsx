@@ -1,96 +1,63 @@
-import React, { useEffect, useRef } from 'react';
-import { tns } from 'tiny-slider';
-import 'tiny-slider/dist/tiny-slider.css';
-
-// Mensajes promocionales
-const messages = [
-  {
-    id: 1,
-    text: 'Envio gratis en pedidos mayores a $50 dolares',
-    link: '#',
-    type: 'info' 
-  },
-  {
-    id: 2,
-    text: '¡30% de descuento en productos seleccionados!',
-    link: '#',
-    type: 'promo'
-  },
-  {
-    id: 3,
-    text: 'Nuevas colecciones ya disponibles',
-    link: '#',
-    type: 'update'
-  },
-  {
-    id: 4,
-    text: 'Klever',
-    link: '#',
-    type: 'update'
-  }
-];
+import { useEffect, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/autoplay";
+import { API_BASE } from "../services/api";
 
 export const PromoBar = () => {
-  const sliderRef = useRef(null);
-  const sliderInstance = useRef(null);
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const initSlider = () => {
-      if (!sliderRef.current) return;
-
-      if (sliderInstance.current && sliderInstance.current.destroy) {
-        try {
-          sliderInstance.current.destroy();
-        } catch (error) {
-          console.warn('Error al destruir el slider anterior:', error);
-        }
-      }
-
+    const fetchPromoBars = async () => {
       try {
-        sliderInstance.current = tns({
-          container: sliderRef.current,
-          items: 1,
-          autoplay: true,
-          autoplayButtonOutput: false,
-          controls: false,
-          nav: false,
-          loop: true,
-          speed: 500,
-          autoplayTimeout: 3000,
-          mouseDrag: true
-        });
-      } catch (error) {
-        console.error('Error al inicializar el slider:', error);
-      }
-    };
-
-    const timeout = setTimeout(initSlider, 100);
-
-    return () => {
-      clearTimeout(timeout);
-      if (sliderInstance.current && sliderInstance.current.destroy) {
-        try {
-          sliderInstance.current.destroy();
-        } catch (error) {
-          console.warn('Error al limpiar el slider:', error);
+        const res = await fetch(
+          `${API_BASE}/utils/promo-bar/date`
+        );
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.promoBars)) {
+          setMessages(data.promoBars.filter((p) => p.visible));
         }
+      } catch (error) {
+        console.error("Error fetching promo bars:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
+    fetchPromoBars();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="ci-arrow-reload"></span>
+        </div>
+      </div>
+    );
+  }
+
+  if (messages.length === 0) return null;
 
   return (
     <div className="cs-promo-bar bg-primary py-2">
-      <div className="promo-bar-inner" ref={sliderRef}>
+      <Swiper
+        modules={[Autoplay]}
+        autoplay={{ delay: 3000, disableOnInteraction: false }}
+        loop={true}
+        slidesPerView={1}
+      >
         {messages.map((msg) => (
-          <div key={msg.id} className="text-center tns-item">
-            <a href={msg.link} className="text-white text-decoration-none">
-              {msg.text}
-            </a>
-          </div>
+          <SwiperSlide key={msg._id}>
+            <div className="text-center">
+              <a href={msg.link} className="text-white text-decoration-none">
+                {msg.text}
+              </a>
+            </div>
+          </SwiperSlide>
         ))}
-      </div>
+      </Swiper>
     </div>
   );
 };

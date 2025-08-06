@@ -1,10 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import { CartShop } from "../../components/carshop";
 import { CartContext } from "../../context/cartContext";
-//Api Prduction
-//const API_BASE = "https://backend-ecommerce-aasn.onrender.com/api";
-//Api Development
-const API_BASE = "http://localhost:3200/api";
+import { notyf } from '../../../utils/notifications';
+import { API_BASE } from "../../services/api";
 
 export const CatalogoComponent = () => {
   const {
@@ -187,6 +185,10 @@ export const CatalogoComponent = () => {
 
     // Usa la función del contexto
     contextAddToCart(newItem);
+    notyf.success({
+      message: `1 unidad de ${product.nameProduct} (${selectedSize.size}) agregada al carrito`,
+      dismissible: true,
+    });
 
     // Muestra el carrito
     //setShowCart(false);
@@ -361,15 +363,12 @@ export const CatalogoComponent = () => {
                     >
                       Categorías
                       <span className="accordion-indicator">
-                        {openCategory === "category" ? "−" : "+"}
                       </span>
                     </a>
                   </h6>
                 </div>
                 <div
-                  className={`collapse ${
-                    openCategory === "category" ? "show" : "collapse"
-                  }`}
+                  className="collapse show"
                   id="category"
                   aria-labelledby="category-panel"
                 >
@@ -651,7 +650,7 @@ export const CatalogoComponent = () => {
           setShowCart,
         }}
       >
-        <CartShop /> {/* ¡Quita el comentario de esta línea! */}
+        <CartShop /> 
       </CartContext.Provider>
     </section>
   );
