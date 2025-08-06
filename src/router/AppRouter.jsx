@@ -1,6 +1,6 @@
 // src/router/AppRouter.jsx
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { HomeComponent } from "../Ecommerce/pages/Home/home";
+import { HomeComponent } from "../Ecommerce/pages/home/home";
 import { NavbarComponent } from '../shared';
 import { CatalogoComponent } from "../Ecommerce/pages/catalogo/catalogo";
 import { Checkout } from "../Ecommerce/pages/checkout/Checkouts";

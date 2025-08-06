@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
   ],
-  base: './',
+  base: '/',
   preview: {
     // 🔁 Esta parte es crucial para que Vite Preview redirija rutas
     middlewareMode: true,
