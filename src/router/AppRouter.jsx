@@ -13,6 +13,7 @@ import { LoginPage } from "../auth/login/login";
 import { useAuth } from "../auth/authContext";
 import Dashboard from "../Ecommerce/dashboard/dashboard";
 import {PageNotFound} from '../shared/index'; // Importamos la página 404
+import { RegisterPage } from "../auth/register/register";
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -60,6 +61,7 @@ export const AppRouter = () => {
         <Route path="checkout" element={<Checkout />} />
         <Route path="producto/:id" element={<ProductoDetalle />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
         
         <Route 
           path="dashboard/*" 
