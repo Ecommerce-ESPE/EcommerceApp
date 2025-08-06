@@ -22,24 +22,24 @@
     <link
       rel="apple-touch-icon"
       sizes="180x180"
-      href="/src/assets/img/apple-touch-icon.png"
+      href="/assets/img/apple-touch-icon.png"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/src/assets/img/favicon-32x32.png"
+      href="/assets/img/favicon-32x32.png"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="16x16"
-      href="/src/assets/img/favicon-16x16.png"
+      href="/assets/img/favicon-16x16.png"
     />
     <link
       rel="mask-icon"
       color="#5bbad5"
-      href="/src/assets/img/safari-pinned-tab.svg"
+      href="/assets/img/safari-pinned-tab.svg"
     />
     <meta name="msapplication-TileColor" content="#766df4" />
     <meta name="theme-color" content="#ffffff" />
@@ -48,7 +48,7 @@
     <link
       rel="stylesheet"
       media="screen"
-      href="/src/assets/css/demo/ecommerce/theme.min.css"
+      href="/assets/css/demo/ecommerce/theme.min.css"
     />
 
     <!-- Page loading styles-->
@@ -64,7 +64,6 @@
         left: 0;
         width: 100%;
         height: 100%;
-        -webkit-transition: all 0.4s 0.2s ease-in-out;
         transition: all 0.4s 0.2s ease-in-out;
         background-color: #fff;
         opacity: 0;
@@ -81,9 +80,7 @@
         left: 0;
         width: 100%;
         text-align: center;
-        -webkit-transform: translateY(-50%);
         transform: translateY(-50%);
-        -webkit-transition: opacity 0.2s ease-in-out;
         transition: opacity 0.2s ease-in-out;
         opacity: 0;
       }
@@ -105,28 +102,14 @@
         background-color: #cfcfd1;
         border-radius: 50%;
         opacity: 0;
-        -webkit-animation: spinner 0.75s linear infinite;
         animation: spinner 0.75s linear infinite;
-      }
-      @-webkit-keyframes spinner {
-        0% {
-          -webkit-transform: scale(0);
-          transform: scale(0);
-        }
-        50% {
-          opacity: 1;
-          -webkit-transform: none;
-          transform: none;
-        }
       }
       @keyframes spinner {
         0% {
-          -webkit-transform: scale(0);
           transform: scale(0);
         }
         50% {
           opacity: 1;
-          -webkit-transform: none;
           transform: none;
         }
       }
@@ -173,28 +156,31 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Tu app de React se monta desde Vite -->
     <script type="module" src="/src/main.jsx"></script>
+
     <!-- Back to top button-->
     <a class="btn-scroll-top" href="#top" data-scroll data-fixed-element>
-      <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2"
-        >Top</span
-      >
+      <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Top</span>
       <i class="btn-scroll-top-icon cxi-angle-up"></i>
     </a>
-    <script src="/src/assets/plugins/jquery-1.12.4.min.js"></script>
-    <script src="/src/assets/plugins/owl-carousel/owl.carousel.min.js"></script>
-    <script src="/src/assets/plugins/bootstrap4/js/bootstrap.min.js"></script>
-    <script src="/src/assets/plugins/imagesloaded.pkgd.js"></script>
-    <script src="/src/assets/plugins/masonry.pkgd.min.js"></script>
-    <script src="/src/assets/plugins/jquery.matchHeight-min.js"></script>
-    <script src="/src/assets/plugins/slick/slick/slick.min.js"></script>
-    <script src="/src/assets/plugins/jquery-bar-rating/dist/jquery.barrating.min.js"></script>
-    <script src="/src/assets/plugins/lightGallery-master/dist/js/lightgallery-all.min.js"></script>
-    <script src="/src/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
-    <script src="/src/assets/plugins/sticky-sidebar/dist/sticky-sidebar.min.js"></script>
-    <script src="/src/assets/plugins/select2/dist/js/select2.full.min.js"></script>
-    <script src="/src/assets/js/main.js"></script>
-    <script src="/src/assets/js/nouislider.min.js"></script>
-    <script src="/src/assets/js/iziToast.min.js"></script>
+
+    <!-- Scripts tradicionales desde /public/assets -->
+    <script src="/assets/plugins/jquery-1.12.4.min.js"></script>
+    <script src="/assets/plugins/owl-carousel/owl.carousel.min.js"></script>
+    <script src="/assets/plugins/bootstrap4/js/bootstrap.min.js"></script>
+    <script src="/assets/plugins/imagesloaded.pkgd.js"></script>
+    <script src="/assets/plugins/masonry.pkgd.min.js"></script>
+    <script src="/assets/plugins/jquery.matchHeight-min.js"></script>
+    <script src="/assets/plugins/slick/slick/slick.min.js"></script>
+    <script src="/assets/plugins/jquery-bar-rating/dist/jquery.barrating.min.js"></script>
+    <script src="/assets/plugins/lightGallery-master/dist/js/lightgallery-all.min.js"></script>
+    <script src="/assets/plugins/jquery-ui/jquery-ui.min.js"></script>
+    <script src="/assets/plugins/sticky-sidebar/dist/sticky-sidebar.min.js"></script>
+    <script src="/assets/plugins/select2/dist/js/select2.full.min.js"></script>
+    <script src="/assets/js/main.js"></script>
+    <script src="/assets/js/nouislider.min.js"></script>
+    <script src="/assets/js/iziToast.min.js"></script>
   </body>
 </html>
