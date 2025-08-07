@@ -203,7 +203,7 @@ const ProfilePage = () => {
       const { name, email, phone, ci } = userData;
 
       const response = await axios.put(
-        `http://localhost:3200/api/user/update`,
+        `${API_BASE}/api/user/update`,
         { name, email, phone, ci },
         {
           headers: {
@@ -225,7 +225,7 @@ const ProfilePage = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `http://localhost:3200/api/user/config`,
+        `${API_BASE}/api/user/config`,
         { config: JSON.stringify(configSettings) },
         {
           headers: {
@@ -266,7 +266,7 @@ const ProfilePage = () => {
       formData.append("public_id", userData.public_id);
 
       const response = await axios.post(
-        "http://localhost:3200/api/user/upload-profile",
+        `${API_BASE}/api/user/upload-profile`,
         formData,
         {
           headers: {
