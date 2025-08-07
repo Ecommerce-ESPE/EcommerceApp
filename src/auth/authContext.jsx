@@ -1,4 +1,3 @@
-// context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
 import { API_BASE } from "../Ecommerce/services/api";
 
@@ -11,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar datos de autenticación al iniciar
   const validateToken = async (token) => {
     try {
       const response = await fetch(`${API_BASE}/auth/validate`, {
@@ -37,7 +35,6 @@ export const AuthProvider = ({ children }) => {
           setToken(token);
           setUser(JSON.parse(userData));
         } else {
-          // Token inválido, limpiar almacenamiento
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           sessionStorage.removeItem("token");
@@ -66,22 +63,39 @@ export const AuthProvider = ({ children }) => {
     setToken(data.token);
     setUser(data.usuario);
 
-    // Devuelve el usuario autenticado
     return data.usuario;
   };
 
   const logout = () => {
-    // Eliminar de todos los almacenamientos
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
-
     setToken(null);
     setUser(null);
   };
 
   const isAuthenticated = !!user;
+  
+  const register = async (userData) => {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+  
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.msg || "Error al registrarse");
+
+  // Guardar el token y usuario en el almacenamiento y estado
+  const storage = localStorage; // o sessionStorage según prefieras
+  storage.setItem("token", data.token);
+  storage.setItem("user", JSON.stringify(data.usuario));
+  setToken(data.token);
+  setUser(data.usuario);
+
+  return data;
+};
 
   return (
     <AuthContext.Provider
@@ -90,6 +104,7 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         logout,
+        register,
         isAuthenticated,
         loading,
       }}

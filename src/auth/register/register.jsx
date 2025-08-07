@@ -1,4 +1,3 @@
-// pages/RegisterPage.jsx
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../authContext";
@@ -7,10 +6,12 @@ import { notyf } from "../../utils/notifications";
 export const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    nombre: "",
+    name: "",
     email: "",
+    ci: "",
     password: "",
     confirmPassword: "",
     termsAccepted: false,
@@ -26,21 +27,36 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
+    // Validaciones
     if (form.password !== form.confirmPassword) {
-      return notyf.error("Las contraseñas no coinciden");
+      notyf.error("Las contraseñas no coinciden");
+      setIsSubmitting(false);
+      return;
     }
 
     if (!form.termsAccepted) {
-      return notyf.error("Debes aceptar los términos y condiciones");
+      notyf.error("Debes aceptar los términos y condiciones");
+      setIsSubmitting(false);
+      return;
     }
 
     try {
-      const newUser = await register(form.nombre, form.email, form.password);
-      notyf.success(`¡Bienvenido ${newUser.nombre}!`);
-      navigate("/dashboard");
+      const userData = {
+        name: form.name,
+        email: form.email,
+        ci: form.ci,
+        password: form.password
+      };
+      
+      const { usuario } = await register(userData);
+      notyf.success(`¡Bienvenido ${usuario.name}!`);
+      navigate("/dashboard/profile");
     } catch (err) {
       notyf.error(err.message || "Error al crear cuenta");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -50,16 +66,16 @@ export const RegisterPage = () => {
         <h3 className="text-center mb-4 fw-semibold">Crear cuenta</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group mb-3">
-            <label htmlFor="nombre" className="form-label">Nombre completo</label>
+            <label htmlFor="name" className="form-label">Nombre completo</label>
             <input
-              name="nombre"
-              id="nombre"
+              name="name"
+              id="name"
               type="text"
               className="form-control"
-              value={form.nombre}
+              value={form.name}
               onChange={handleChange}
               required
-              placeholder="Juan Pérez"
+              placeholder="Ingresa tu nombre completo"
             />
           </div>
 
@@ -78,6 +94,20 @@ export const RegisterPage = () => {
           </div>
 
           <div className="form-group mb-3">
+            <label htmlFor="ci" className="form-label">Cédula de Identidad</label>
+            <input
+              name="ci"
+              id="ci"
+              type="text"
+              className="form-control"
+              value={form.ci}
+              onChange={handleChange}
+              required
+              placeholder="000000000"
+            />
+          </div>
+
+          <div className="form-group mb-3">
             <label htmlFor="password" className="form-label">Contraseña</label>
             <input
               name="password"
@@ -87,8 +117,10 @@ export const RegisterPage = () => {
               value={form.password}
               onChange={handleChange}
               required
+              minLength={6}
               placeholder="••••••••"
             />
+            <small className="text-muted">Mínimo 6 caracteres</small>
           </div>
 
           <div className="form-group mb-3">
@@ -113,14 +145,24 @@ export const RegisterPage = () => {
               name="termsAccepted"
               checked={form.termsAccepted}
               onChange={handleChange}
+              required
             />
             <label className="form-check-label" htmlFor="termsAccepted">
               Acepto los <a href="/terms" target="_blank" rel="noopener noreferrer">términos y condiciones</a>
             </label>
           </div>
 
-          <button type="submit" className="btn btn-primary w-100 shadow-sm">
-            Crear cuenta
+          <button 
+            type="submit" 
+            className="btn btn-primary w-100 shadow-sm"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Creando cuenta...
+              </>
+            ) : 'Crear cuenta'}
           </button>
         </form>
 

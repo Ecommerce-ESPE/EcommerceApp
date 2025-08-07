@@ -185,7 +185,7 @@ export const NavbarComponent = () => {
                       >
                         <i className="cxi-profile nav-tool-icon mr-2"></i>
                         <span className="font-size-sm text-nowrap">
-                          {user.nombre}
+                          {user.nombre || user.name }
                         </span>
                       </a>
 
@@ -204,12 +204,12 @@ export const NavbarComponent = () => {
                             height="64"
                           />
                           <div className="ml-2">
-                            <h6 className="mb-1">{user.nombre}</h6>
+                            <h6 className="mb-1">{user.nombre || user.name }</h6>
                             <p className="mb-2 text-muted small">
                               {user.email || ""}
                             </p>
                             <p className="mb-2 text-muted small font-weight-bold">
-                              $ {user.wallet.toFixed(2) || 0.0} Dolares
+                               $ {(user?.wallet ?? 0).toFixed(2)} Dolares
                             </p>
                           </div>
                         </div>

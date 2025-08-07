@@ -3,6 +3,7 @@ import axios from "axios";
 import { notyf } from "../../../utils/notifications";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { API_BASE } from "../../services/api";
+import avatar from "../../../assets/img/ecommerce/home/categories/03.jpg";
 
 import {
   faUserCircle,
@@ -376,7 +377,7 @@ const ProfilePage = () => {
                 >
                   <img
                     src={
-                      userData.profileUrl || "https://via.placeholder.com/150"
+                      userData.profileUrl || avatar
                     }
                     className="rounded-circle border border-primary"
                     alt="Profile"
