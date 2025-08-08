@@ -74,7 +74,7 @@ export const HeroSlider = () => {
           autoplay: true,
           autoplayButtonOutput: false,
           mouseDrag: true,
-          preventScrollOnTouch: "force",
+          preventScrollOnTouch: "auto",
           controls: true,
           controlsText: [
             '<i class="cxi-arrow-left"></i>',
@@ -171,7 +171,7 @@ export const HeroSlider = () => {
               backgroundRepeat: "no-repeat",
               backgroundSize: "cover",
               minHeight: "700px",
-              minWidth: "1200px",
+              minWidth: "100%",
               aspectRatio: "12 / 5",
               display: "flex",
               alignItems: "center",
