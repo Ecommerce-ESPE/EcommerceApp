@@ -10,7 +10,7 @@ const CheckoutSteps = ({ step, nextStep, prevStep, cart, isAuthenticated, select
         </button>
       )}
 
-      {step < 5 ? (
+      {step < 4 ? (
         <button
           className="btn btn-primary ml-auto"
           onClick={nextStep}

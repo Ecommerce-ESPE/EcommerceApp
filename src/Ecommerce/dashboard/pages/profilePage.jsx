@@ -253,77 +253,77 @@ const ProfilePage = () => {
     }
   };
 
-  const uploadProfileImage = async () => {
-    if (!profileImage) return;
+  // const uploadProfileImage = async () => {
+  //   if (!profileImage) return;
 
-    setIsUploading(true);
-    setUploadProgress(0);
+  //   setIsUploading(true);
+  //   setUploadProgress(0);
 
-    try {
-      const token = localStorage.getItem("token");
-      const formData = new FormData();
-      formData.append("image", profileImage);
-      formData.append("public_id", userData.public_id);
+  //   try {
+  //     const token = localStorage.getItem("token");
+  //     const formData = new FormData();
+  //     formData.append("image", profileImage);
+  //     formData.append("public_id", userData.public_id);
 
-      const response = await axios.post(
-        `${API_BASE}/user/upload-profile`,
-        formData,
-        {
-          headers: {
-            "x-token": token,
-            "Content-Type": "multipart/form-data",
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percentCompleted);
-          },
-        }
-      );
+  //     const response = await axios.post(
+  //       `${API_BASE}/user/upload-profile`,
+  //       formData,
+  //       {
+  //         headers: {
+  //           "x-token": token,
+  //           "Content-Type": "multipart/form-data",
+  //         },
+  //         onUploadProgress: (progressEvent) => {
+  //           const percentCompleted = Math.round(
+  //             (progressEvent.loaded * 100) / progressEvent.total
+  //           );
+  //           setUploadProgress(percentCompleted);
+  //         },
+  //       }
+  //     );
 
-      if (response.data.ok) {
-        setUserData((prev) => ({
-          ...prev,
-          profileUrl: response.data.imageUrl,
-          public_id: response.data.public_id,
-        }));
-        notyf.success("Foto de perfil actualizada correctamente");
-        setProfileImage(null);
-      }
-    } catch (err) {
-      console.error("Error al subir imagen:", err);
-      notyf.error("Error al actualizar la foto de perfil");
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
+  //     if (response.data.ok) {
+  //       setUserData((prev) => ({
+  //         ...prev,
+  //         profileUrl: response.data.imageUrl,
+  //         public_id: response.data.public_id,
+  //       }));
+  //       notyf.success("Foto de perfil actualizada correctamente");
+  //       setProfileImage(null);
+  //     }
+  //   } catch (err) {
+  //     console.error("Error al subir imagen:", err);
+  //     notyf.error("Error al actualizar la foto de perfil");
+  //   } finally {
+  //     setIsUploading(false);
+  //     setUploadProgress(0);
+  //   }
+  // };
 
-  const deleteAccount = async () => {
-    if (
-      window.confirm(
-        "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer."
-      )
-    ) {
-      try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:3200/api/user/${userData.uid}`, {
-          headers: {
-            "x-token": token,
-          },
-        });
-        localStorage.removeItem("token");
-        notyf.success("Tu cuenta ha sido eliminada");
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
-      } catch (err) {
-        console.error("Error al eliminar cuenta:", err);
-        notyf.error("Error al eliminar la cuenta");
-      }
-    }
-  };
+  // const deleteAccount = async () => {
+  //   if (
+  //     window.confirm(
+  //       "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer."
+  //     )
+  //   ) {
+  //     try {
+  //       const token = localStorage.getItem("token");
+  //       await axios.delete(`http://localhost:3200/api/user/${userData.uid}`, {
+  //         headers: {
+  //           "x-token": token,
+  //         },
+  //       });
+  //       localStorage.removeItem("token");
+  //       notyf.success("Tu cuenta ha sido eliminada");
+  //       setTimeout(() => {
+  //         window.location.href = "/";
+  //       }, 1500);
+  //     } catch (err) {
+  //       console.error("Error al eliminar cuenta:", err);
+  //       notyf.error("Error al eliminar la cuenta");
+  //     }
+  //   }
+  // };
 
   if (loading) {
     return (
