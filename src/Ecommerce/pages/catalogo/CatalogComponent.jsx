@@ -75,20 +75,27 @@ const CatalogComponent = () => {
 
   return (
     <section className="container pt-3 pb-5 mb-2 mb-lg-0">
-      {/* Mobile Cart Button */}
+        {/* Mobile Cart Button */}
       <div
-        className="fixed-top d-lg-none"
-        style={{ top: "0px", right: "20px", zIndex: -1 }}
+        className="d-lg-none position-fixed"
+        style={{ top: "0px", right: "0px", zIndex: 1050 }}
       >
         <button
-          className="btn btn-primary btn-sm"
+          className="btn btn-primary btn-sm position-fixed"
           onClick={() => setShowCart(true)}
+          style={{
+            width: "100px",
+            height: "50px",
+            bottom: "20px", // margen desde abajo
+            right: "0px", 
+            zIndex: 1050,
+          }}
         >
           <i className="cxi-cart"></i>
           <span className="badge badge-light ml-1">{cart.length}</span>
         </button>
       </div>
-
+      
       {/* Toolbar and Filters button */}
       <div className="row mb-4 pb-2">
         <div className="col-md-3 pr-lg-4 mb-3 mb-md-0">

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import { Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { API_BASE } from "../services/api";
+import "./ProductCarousel.css"; // 📌 Nuevo archivo CSS para estilos extra
 
 export const ProductCarousel = () => {
   const [products, setProducts] = useState([]);
@@ -108,7 +109,6 @@ export const ProductCarousel = () => {
 
   return (
     <div className="cs-carousel cs-nav-outside position-relative">
-      {/* Swiper Component */}
       <Swiper
         modules={[Navigation, Autoplay]}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
@@ -118,7 +118,6 @@ export const ProductCarousel = () => {
           prevEl: ".swiper-button-prev-custom",
           nextEl: ".swiper-button-next-custom",
         }}
-        //pagination={{ clickable: true }}
         breakpoints={{
           0: { slidesPerView: 1 },
           420: { slidesPerView: 2 },
@@ -129,7 +128,7 @@ export const ProductCarousel = () => {
         {products.map((product) => (
           <SwiperSlide key={product.id}>
             <div className="card card-product mx-auto">
-              <div className="card-product-img">
+              <div className="card-product-img fixed-img-container">
                 <a href={product.link} className="card-img-top">
                   <img
                     src={product.image}
@@ -208,7 +207,6 @@ export const ProductCarousel = () => {
           </SwiperSlide>
         ))}
       </Swiper>
-
     </div>
   );
 };

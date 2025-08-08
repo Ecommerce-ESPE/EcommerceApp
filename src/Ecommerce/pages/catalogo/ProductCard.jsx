@@ -48,7 +48,7 @@ const ProductCard = ({
   return (
     <div className="col pb-sm-2 mb-grid-gutter">
       <div className="card card-product mx-auto">
-        <div className="card-product-img" style={{ position: "relative" }}>
+        <div className="card-product-img fixed-img-container" style={{ position: "relative" }}>
           <a href={`/producto/${product._id}`} className="card-img-top">
             <img 
               src={product.banner || "https://via.placeholder.com/300"} 
@@ -57,7 +57,7 @@ const ProductCard = ({
             />
             {isPromoActive && (
               <span
-                className="badge badge-danger"
+                className="badge product-badge badge-danger"
                 style={{
                   position: "absolute",
                   top: "10px",
