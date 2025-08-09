@@ -7,15 +7,13 @@ export default function SEOProduct({ product }) {
 
   const urlPublic = "https://ecommerce-app-two-tau.vercel.app";
   const url = `${urlPublic}/producto/${product.slug}`;
-  const image =
-    product.images && product.images.length > 0
-      ? product.images[0]
-      : `${urlPublic}/default-product-image.jpg`;
+  const image = product.images;
 
   const description = (product.description || "Compra este producto en nuestra tienda online.")
     .replace(/<[^>]+>/g, "")
     .slice(0, 160);
 
+  //console.log("SEOProduct renderizado con:", { product, url, image, description });
   return (
     <Helmet>
       {/* Título y descripción */}
@@ -44,7 +42,7 @@ export default function SEOProduct({ product }) {
           "@context": "https://schema.org/",
           "@type": "Product",
           name: product.name,
-          image: [image],
+          image: image,
           description: description,
           sku: product.sku || "N/A",
           brand: {
