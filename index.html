@@ -2,18 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Createx | E-Commerce - Home</title>
-
-    <!-- SEO Meta Tags-->
-    <meta
-      name="description"
-      content="Createx - Multipurpose Bootstrap Template and UI Kit"
-    />
-    <meta
-      name="keywords"
-      content="bootstrap, business, creative agency, construction, services, e-commerce, shopping cart, mobile app showcase, multipurpose, shop, ui kit, marketing, seo, landing, html5, css3, javascript, gallery, slider, touch, creative"
-    />
-    <meta name="author" content="Createx Studio" />
+    <title>Createx</title>
 
     <!-- Viewport-->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,6 +40,21 @@
       href="/assets/css/demo/ecommerce/theme.min.css"
     />
 
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-Z1WHWBJY9K"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-Z1WHWBJY9K");
+    </script>
+    
     <!-- Page loading styles-->
     <style>
       .pagination {
@@ -162,7 +166,9 @@
 
     <!-- Back to top button-->
     <a class="btn-scroll-top" href="#top" data-scroll data-fixed-element>
-      <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Top</span>
+      <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2"
+        >Top</span
+      >
       <i class="btn-scroll-top-icon cxi-angle-up"></i>
     </a>
 

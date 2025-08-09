@@ -1,14 +1,14 @@
 // src/components/ProductPage.jsx
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 
-import ProductGallery from './ProductGallery';
-import ProductInfo from './ProductInfo';
-import ProductDetails from './ProductDetails';
+import ProductGallery from "./ProductGallery";
+import ProductInfo from "./ProductInfo";
+import ProductDetails from "./ProductDetails";
 
 import { API_BASE } from "../../services/api";
-
+import SEOProduct from "../../seo/SEOProduct";
 const ProductPage = ({ addToCart }) => {
   const { id } = useParams();
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -19,10 +19,10 @@ const ProductPage = ({ addToCart }) => {
     const fetchProduct = async () => {
       try {
         const response = await axios.get(`${API_BASE}/items/${id}`);
-        setSelectedProduct(response.data.item); 
-         setLoading(false);
+        setSelectedProduct(response.data.item);
+        setLoading(false);
       } catch {
-        setError('Producto no encontrado');
+        setError("Producto no encontrado");
         setLoading(false);
       }
     };
@@ -40,6 +40,20 @@ const ProductPage = ({ addToCart }) => {
 
   return (
     <>
+      <SEOProduct
+        product={{
+          name: selectedProduct.nameProduct,
+          slug: selectedProduct.slug || selectedProduct._id,
+          description: selectedProduct.description,
+          images: selectedProduct.banner,
+          sku: selectedProduct.sku,
+          brand: selectedProduct.brand || "N/A",
+          currency: "USD",
+          price: selectedProduct.value[0]?.originalPrice || 0,
+          stock:  selectedProduct.value.reduce((acc, v) => acc + (v.stock || 0), 0),
+        }}
+      />
+
       {/* Título de página */}
       <section className="container d-md-flex align-items-center justify-content-between py-3 py-md-4 mb-3">
         <h1 className="mb-2 mb-md-0">{selectedProduct.nameProduct}</h1>
@@ -49,8 +63,8 @@ const ProductPage = ({ addToCart }) => {
       </section>
 
       {/* Producto principal */}
-      <section className="container py-md-0 py- mb-2" >
-        <div className="row" > 
+      <section className="container py-md-0 py- mb-2">
+        <div className="row">
           <div className="col-md-6 mb-md-0 mb-4">
             <ProductGallery product={selectedProduct} />
           </div>
@@ -61,7 +75,7 @@ const ProductPage = ({ addToCart }) => {
       </section>
 
       {/* Detalles */}
-      <div className="py-5" style={{ backgroundColor: '#e5e8ed' }}>
+      <div className="py-5" style={{ backgroundColor: "#e5e8ed" }}>
         <ProductDetails product={selectedProduct} />
       </div>
     </>

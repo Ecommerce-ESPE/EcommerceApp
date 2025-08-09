@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.0.0",
     "@fortawesome/free-brands-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.3",
@@ -19,6 +20,7 @@
     "notyf": "^3.10.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.5.3",
     "simplebar": "^6.3.2",
     "simplebar-react": "^3.3.2",
