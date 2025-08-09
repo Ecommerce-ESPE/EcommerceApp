@@ -5,12 +5,21 @@ export default function AnalyticsTracker() {
   const location = useLocation();
 
   useEffect(() => {
-    window.gtag("config", "G-Z1WHWBJY9K", {
-      page_path: location.pathname,
-    });
+    // Espera a que Helmet actualice el título
+    const timer = setTimeout(() => {
+      const pageTitle = document.title;
+
+      if (typeof window.gtag === "function") {
+        window.gtag("config", "G-Z1WHWBJY9K", {
+          page_title: pageTitle,
+          page_path: location.pathname + location.search,
+        });
+        //console.log("GA enviado:", location.pathname, pageTitle);
+      }
+    }, 50); // pequeño delay
+
+    return () => clearTimeout(timer);
   }, [location]);
-  //console.log("AnalyticsTracker mounted");
-  //console.log("Current path:", location.pathname);
-  
+
   return null;
 }
