@@ -5,6 +5,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { API_BASE } from "../services/api";
+import "./ProductCarousel.css"; 
 
 export const PopularProductCarousel = () => {
   const [products, setProducts] = useState([]);
@@ -50,8 +51,8 @@ export const PopularProductCarousel = () => {
               image: item.banner,
               title: item.nameProduct,
               rating: item.rating,
-              wishlist: false,
-              link: `/producto/${item._id}`,
+              wishlist: false,  
+              link: `/producto/${item.slug || item._id}`,
               price: bestVariant.price,
               originalPrice: bestVariant.originalPrice,
               discountPrice: bestVariant.discountPrice,
@@ -129,7 +130,7 @@ export const PopularProductCarousel = () => {
         {products.map((product) => (
           <SwiperSlide key={product.id}>
             <div className="card card-product mx-auto">
-              <div className="card-product-img">
+              <div className="card-product-img fixed-img-container">
                 <a href={product.link} className="card-img-top">
                   <img
                     src={product.image}

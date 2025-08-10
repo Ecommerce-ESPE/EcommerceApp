@@ -58,7 +58,7 @@ const ProductPage = ({ addToCart }) => {
       <section className="container d-md-flex align-items-center justify-content-between py-3 py-md-4 mb-3">
         <h1 className="mb-2 mb-md-0">{selectedProduct.nameProduct}</h1>
         <span className="text-muted">
-          <strong>Art. No.</strong> {selectedProduct._id}
+          <strong>Art. No.</strong> {selectedProduct.sku || selectedProduct._id}
         </span>
       </section>
 

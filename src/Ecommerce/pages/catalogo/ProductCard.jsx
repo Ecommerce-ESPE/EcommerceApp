@@ -44,12 +44,12 @@ const ProductCard = ({
 
   // Verificar si el stock del tamaño seleccionado es 0
   const isOutOfStock = selectedSize?.stock === 0;
-
+  
   return (
     <div className="col pb-sm-2 mb-grid-gutter">
       <div className="card card-product mx-auto">
         <div className="card-product-img fixed-img-container" style={{ position: "relative" }}>
-          <a href={`/producto/${product._id}`} className="card-img-top">
+          <a href={`/producto/${product.slug || product._id}`} className="card-img-top">
             <img 
               src={product.banner || "https://via.placeholder.com/300"} 
               alt={product.nameProduct} 
@@ -72,7 +72,7 @@ const ProductCard = ({
         </div>
         <div className="card-body pb-2">
           <h3 className="card-product-title text-truncate mb-2">
-            <a href={`/producto/${product._id}`} className="nav-link">
+            <a href={`/producto/${ product.slug || product._id}`} className="nav-link">
               {product.nameProduct}
             </a>
           </h3>

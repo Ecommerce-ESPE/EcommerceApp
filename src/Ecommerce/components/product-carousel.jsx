@@ -52,7 +52,7 @@ export const ProductCarousel = () => {
               title: item.nameProduct,
               rating: item.rating,
               wishlist: false,
-              link: `/producto/${item._id}`,
+              link: `/producto/${item.slug || item._id}`,
               price: bestVariant.price,
               originalPrice: bestVariant.originalPrice,
               discountPrice: bestVariant.discountPrice,

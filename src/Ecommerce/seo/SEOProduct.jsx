@@ -13,7 +13,7 @@ export default function SEOProduct({ product }) {
     .replace(/<[^>]+>/g, "")
     .slice(0, 160);
 
-  //console.log("SEOProduct renderizado con:", { product, url, image, description });
+  //console.log("SEOProduct renderizado con:", { product});
   return (
     <Helmet>
       {/* Título y descripción */}
