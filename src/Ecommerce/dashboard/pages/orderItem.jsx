@@ -119,12 +119,17 @@ const OrderItem = () => {
     <div className="container-fluid py-4">
       <div className="row mb-4">
         <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center">
-            <h2 className="mb-0">
-              <i className="fas fa-file-invoice mr-2 text-primary"></i>
-              Detalle del Pedido
-            </h2>
-            <span className="text-muted">#{_id}</span>
+          <div className="d-flex justify-content-between align-items-center flex-wrap">
+            <div className="d-flex align-items-center">
+              <h2 className="mb-0">
+                <i className="fas fa-file-invoice mr-2 text-primary"></i>
+                Detalle del Pedido
+              </h2>
+              <span className="text-muted ml-3">#{_id}</span>
+            </div>
+            <a href="/dashboard/pedidos" className="btn btn-outline-primary btn-sm mt-2 mt-md-0">
+              <i className="fas fa-arrow-left mr-2"></i> Volver a pedidos
+            </a>
           </div>
           <hr className="mt-2" />
         </div>

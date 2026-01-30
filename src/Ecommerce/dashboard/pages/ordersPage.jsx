@@ -100,6 +100,18 @@ const OrdersPage = () => {
     return new Date(dateString).toLocaleDateString("es-EC", options);
   };
 
+  const orderStats = transactions.reduce(
+    (acc, order) => {
+      const status = (order.status || "").toLowerCase();
+      acc.total += 1;
+      if (status === "completed") acc.completed += 1;
+      if (status === "processing") acc.processing += 1;
+      if (status === "pending") acc.pending += 1;
+      return acc;
+    },
+    { total: 0, completed: 0, processing: 0, pending: 0 }
+  );
+
   return (
     <div className="container-fluid py-4">
       <div className="row mb-4">
@@ -130,6 +142,41 @@ const OrdersPage = () => {
             </div>
           </div>
           <hr className="mt-3" />
+        </div>
+      </div>
+
+      <div className="row mb-4">
+        <div className="col-md-3 col-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-muted small">Total</div>
+              <div className="h5 mb-0">{orderStats.total}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-muted small">Completados</div>
+              <div className="h5 mb-0 text-success">{orderStats.completed}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-muted small">En proceso</div>
+              <div className="h5 mb-0 text-info">{orderStats.processing}</div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 col-6 mb-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <div className="text-muted small">Pendientes</div>
+              <div className="h5 mb-0 text-warning">{orderStats.pending}</div>
+            </div>
+          </div>
         </div>
       </div>
 

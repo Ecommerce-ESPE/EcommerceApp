@@ -89,6 +89,7 @@ export const processTransaction = async (transactionData, setters) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: token ? `Bearer ${token}` : "",
+          "x-checkout-origin": "online",
         },
         body: JSON.stringify(transactionData),
       }

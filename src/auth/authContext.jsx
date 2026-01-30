@@ -9,6 +9,45 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+
+  const extractWallet = (data) => {
+    if (!data || typeof data !== "object") return null;
+    const direct = data.wallet || data.billetera || data?.data?.wallet || data?.data?.billetera;
+    if (direct) return direct;
+    if (data.balance != null || data.amount != null || data.credits != null) return data;
+    if (data.data && (data.data.balance != null || data.data.amount != null || data.data.credits != null)) {
+      return data.data;
+    }
+    return null;
+  };
+
+  const refreshWallet = async (overrideToken) => {
+    const currentToken =
+      overrideToken ||
+      token ||
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token");
+    if (!currentToken) return null;
+
+    setWalletLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/wallet/me`, {
+        headers: { "x-token": currentToken },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.msg || "Error al obtener wallet");
+
+      const walletData = extractWallet(data);
+      if (walletData) setWallet(walletData);
+      return walletData;
+    } catch {
+      return null;
+    } finally {
+      setWalletLoading(false);
+    }
+  };
 
   const validateToken = async (token) => {
     try {
@@ -34,6 +73,7 @@ export const AuthProvider = ({ children }) => {
         if (isValid) {
           setToken(token);
           setUser(JSON.parse(userData));
+          await refreshWallet(token);
         } else {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
@@ -62,6 +102,7 @@ export const AuthProvider = ({ children }) => {
     storage.setItem("user", JSON.stringify(data.usuario));
     setToken(data.token);
     setUser(data.usuario);
+    await refreshWallet(data.token);
 
     return data.usuario;
   };
@@ -73,6 +114,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem("user");
     setToken(null);
     setUser(null);
+    setWallet(null);
   };
 
   const isAuthenticated = !!user;
@@ -93,6 +135,7 @@ export const AuthProvider = ({ children }) => {
   storage.setItem("user", JSON.stringify(data.usuario));
   setToken(data.token);
   setUser(data.usuario);
+  await refreshWallet(data.token);
 
   return data;
 };
@@ -107,6 +150,10 @@ export const AuthProvider = ({ children }) => {
         register,
         isAuthenticated,
         loading,
+        wallet,
+        walletLoading,
+        refreshWallet,
+        setWallet,
       }}
     >
       {children}

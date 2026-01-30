@@ -1,4 +1,4 @@
-// src/router/AppRouter.jsx
+﻿// src/router/AppRouter.jsx
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { HomeComponent } from "../Ecommerce/pages/home/home";
 import { NavbarComponent } from '../shared';
@@ -11,9 +11,10 @@ import ProductoDetalle from "../Ecommerce/pages/item/item";
 import CatalogComponent from "../Ecommerce/pages/catalogo/CatalogComponent";
 import { LoginPage } from "../auth/login/login";
 import { useAuth } from "../auth/authContext";
-import Dashboard from "../Ecommerce/dashboard/dashboard";
-import {PageNotFound} from '../shared/index'; // Importamos la página 404
+import AccountDashboard from "../Ecommerce/account/AccountDashboard";
+import {PageNotFound} from '../shared/index'; // Importamos la pagina 404
 import { RegisterPage } from "../auth/register/register";
+import PromoResolvePage from "../Ecommerce/pages/promo/PromoResolvePage";
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -21,7 +22,7 @@ const PrivateRoute = ({ children }) => {
   
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      // Redirigir después de 10 segundos
+      // Redirigir despues de 10 segundos
       const timer = setTimeout(() => navigate('/login'), 10000);
       return () => clearTimeout(timer);
     }
@@ -56,6 +57,7 @@ export const AppRouter = () => {
       <Routes>
         <Route path="/" element={<Navigate to='/home' />} />
         <Route path="home" element={<HomeComponent />} />
+        <Route path="shop/:section/:slug" element={<PromoResolvePage />} />
         <Route path="shop" element={<CatalogComponent />} />
         <Route path="catalogo" element={<CatalogoComponent />} />
         <Route path="checkout" element={<Checkout />} />
@@ -64,15 +66,16 @@ export const AppRouter = () => {
         <Route path="register" element={<RegisterPage />} />
         
         <Route 
-          path="dashboard/*" 
+          path="account/*" 
           element={
             <PrivateRoute>
-              <Dashboard />
+              <AccountDashboard />
             </PrivateRoute>
           } 
         />
+        <Route path="dashboard/*" element={<Navigate to="/account" replace />} />
         
-        {/* Ruta para manejar todas las páginas no encontradas */}
+        {/* Ruta para manejar todas las paginas no encontradas */}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

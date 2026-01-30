@@ -4,6 +4,7 @@ import axios from "axios";
 
 import AccountMenu from "./components/AccountMenu";
 import { API_BASE } from "../services/api";
+import "./dashboard.css";
 import { useAuth } from "../../auth/authContext"; // ✅ Importar el hook de autenticación
 
 const DashboardLayout = () => {
@@ -33,10 +34,23 @@ const DashboardLayout = () => {
 
   return (
     <section className="container pt-4 pb-5">
-      <div className="row">
-        <AccountMenu userData={userData} />
-        <div className="col-lg-8 ml-auto">
-          <Outlet context={{ userData }} />
+      <div className="dashboard-shell">
+        <div className="dashboard-header mb-4">
+          <div>
+            <h1 className="h3 mb-1">Mi cuenta</h1>
+            <p className="text-muted mb-0">
+              Gestiona tu perfil, pedidos y creditos.
+            </p>
+          </div>
+          <a className="btn btn-outline-primary btn-sm d-none d-md-inline" href="/">
+            Seguir comprando
+          </a>
+        </div>
+        <div className="row">
+          <AccountMenu userData={userData} />
+          <div className="col-lg-8 ml-auto">
+            <Outlet context={{ userData }} />
+          </div>
         </div>
       </div>
     </section>
@@ -44,3 +58,4 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+

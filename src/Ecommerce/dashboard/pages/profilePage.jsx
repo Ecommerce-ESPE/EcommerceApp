@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { notyf } from "../../../utils/notifications";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { API_BASE } from "../../services/api";
 import avatar from "../../../assets/img/ecommerce/home/categories/03.jpg";
+import { useAuth } from "../../../auth/authContext";
 
 import {
   faUserCircle,
@@ -24,11 +26,19 @@ import {
   faCheckCircle,
   //faExclamationCircle
 } from "@fortawesome/free-solid-svg-icons";
+
+const ALLOWED_TABS = ["profile", "addresses", "settings", "credits"];
+
 const ProfilePage = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("profile");
+  const { token: authToken, wallet, refreshWallet, setWallet } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const isAllowedTab = (value) => ALLOWED_TABS.includes(value);
+  const initialTab = isAllowedTab(tabParam) ? tabParam : "profile";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState(null);
   const [newAddress, setNewAddress] = useState({
@@ -48,12 +58,45 @@ const ProfilePage = () => {
     darkMode: false,
     language: "es",
   });
+  const [walletTransactions, setWalletTransactions] = useState([]);
+  const [walletTxLoading, setWalletTxLoading] = useState(false);
+  const [walletTxError, setWalletTxError] = useState(null);
+  const [walletSkip, setWalletSkip] = useState(0);
+  const [walletHasMore, setWalletHasMore] = useState(true);
+  const WALLET_PAGE_SIZE = 20;
   const fileInputRef = useRef(null);
+
+  const getAuthToken = () =>
+    authToken ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token");
+
+  const extractWallet = (data) => {
+    if (!data || typeof data !== "object") return null;
+    const direct =
+      data.wallet || data.billetera || data?.data?.wallet || data?.data?.billetera;
+    if (direct) return direct;
+    if (data.balance != null || data.amount != null || data.credits != null) return data;
+    if (
+      data.data &&
+      (data.data.balance != null || data.data.amount != null || data.data.credits != null)
+    ) {
+      return data.data;
+    }
+    return null;
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
+
+        if (!token) {
+          setError("No autenticado. Inicia sesiÃ³n nuevamente.");
+          setLoading(false);
+          return;
+        }
+
         const response = await axios.get(
           `${API_BASE}/user/my-profile`,
           {
@@ -79,7 +122,77 @@ const ProfilePage = () => {
     };
 
     fetchUserData();
-  }, []);
+  }, [authToken]);
+
+  const fetchWalletTransactions = async (reset = false) => {
+    const token = getAuthToken();
+    if (!token) {
+      setWalletTxError("No autenticado. Inicia sesión nuevamente.");
+      return;
+    }
+
+    const nextSkip = reset ? 0 : walletSkip;
+    setWalletTxLoading(true);
+    setWalletTxError(null);
+
+    try {
+      await refreshWallet(token);
+      const response = await axios.get(
+        `${API_BASE}/wallet/me/transactions?limit=${WALLET_PAGE_SIZE}&skip=${nextSkip}`,
+        {
+          headers: {
+            "x-token": token,
+          },
+        }
+      );
+
+      const data = response.data || {};
+      const newTransactions =
+        data.transactions || data.data?.transactions || data.items || [];
+
+      if (reset) {
+        setWalletTransactions(newTransactions);
+        setWalletSkip(WALLET_PAGE_SIZE);
+      } else {
+        setWalletTransactions((prev) => [...prev, ...newTransactions]);
+        setWalletSkip(nextSkip + WALLET_PAGE_SIZE);
+      }
+
+      setWalletHasMore(newTransactions.length === WALLET_PAGE_SIZE);
+
+      const walletData = extractWallet(data);
+      if (walletData) setWallet(walletData);
+    } catch (err) {
+      setWalletTxError("Error al obtener transacciones de la billetera.");
+    } finally {
+      setWalletTxLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== "credits") return;
+    setWalletTransactions([]);
+    setWalletSkip(0);
+    setWalletHasMore(true);
+    fetchWalletTransactions(true);
+  }, [activeTab, authToken]);
+
+  useEffect(() => {
+    const nextTab = isAllowedTab(tabParam) ? tabParam : "profile";
+    if (nextTab !== activeTab) {
+      setActiveTab(nextTab);
+    }
+  }, [tabParam, activeTab]);
+
+  const setTab = (nextTab) => {
+    if (!isAllowedTab(nextTab)) return;
+    setActiveTab(nextTab);
+    if (nextTab === "profile") {
+      setSearchParams({}, { replace: true });
+    } else {
+      setSearchParams({ tab: nextTab }, { replace: true });
+    }
+  };
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
@@ -253,6 +366,81 @@ const ProfilePage = () => {
     }
   };
 
+  const handleRedeem = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      notyf.error("No autenticado. Inicia sesión nuevamente.");
+      return;
+    }
+
+    const code = window.prompt("Ingresa el código para recargar:");
+    if (!code) return;
+
+    try {
+      await axios.post(
+        `${API_BASE}/wallet/redeem`,
+        { code },
+        { headers: { "x-token": token } }
+      );
+      notyf.success("Recarga aplicada correctamente");
+      await refreshWallet(token);
+      await fetchWalletTransactions(true);
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg =
+        data?.message ||
+        data?.msg ||
+        "Error al canjear el codigo";
+      notyf.error(msg);
+      if (data?.newBalance != null) {
+        notyf.open({
+          type: "info",
+          message: `Saldo actual: ${formatCurrency(data.newBalance)}`,
+        });
+      }
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("es-EC", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(amount || 0));
+  };
+
+  const normalizeDate = (value) => {
+    if (!value) return null;
+    if (typeof value === "string" || typeof value === "number") return value;
+    if (value.$date) return value.$date;
+    return null;
+  };
+
+  const formatDate = (value) => {
+    const dateValue = normalizeDate(value);
+    if (!dateValue) return "-";
+    return new Date(dateValue).toLocaleDateString("es-EC", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatAmountFromCents = (amountCents) => {
+    if (amountCents == null) return formatCurrency(0);
+    return formatCurrency(Number(amountCents) / 100);
+  };
+
+  const walletAmount =
+    wallet?.balance ??
+    wallet?.amount ??
+    wallet?.credits ??
+    userData?.wallet ??
+    userData?.credits ??
+    0;
+
   // const uploadProfileImage = async () => {
   //   if (!profileImage) return;
 
@@ -425,7 +613,7 @@ const ProfilePage = () => {
                       ? "btn-primary"
                       : "btn-outline-primary"
                   }`}
-                  onClick={() => setActiveTab("profile")}
+                  onClick={() => setTab("profile")}
                 >
                   <FontAwesomeIcon icon={faUserCircle} className="mr-1" />
                   Perfil
@@ -436,7 +624,7 @@ const ProfilePage = () => {
                       ? "btn-primary"
                       : "btn-outline-primary"
                   }`}
-                  onClick={() => setActiveTab("addresses")}
+                  onClick={() => setTab("addresses")}
                 >
                   <FontAwesomeIcon icon={faMapMarkerAlt} className="mr-1" />
                   Direcciones
@@ -447,7 +635,7 @@ const ProfilePage = () => {
                       ? "btn-primary"
                       : "btn-outline-primary"
                   }`}
-                  onClick={() => setActiveTab("settings")}
+                  onClick={() => setTab("settings")}
                 >
                   <FontAwesomeIcon icon={faCog} className="mr-1" />
                   Configuración
@@ -458,10 +646,10 @@ const ProfilePage = () => {
                       ? "btn-primary"
                       : "btn-outline-primary"
                   }`}
-                  onClick={() => setActiveTab("credits")}
+                  onClick={() => setTab("credits")}
                 >
                   <FontAwesomeIcon icon={faWallet} className="mr-1" />
-                  Créditos: ${userData.credits.toFixed(2)}
+                  Creditos: ${formatCurrency(walletAmount)}
                 </button>
               
               </div>
@@ -896,20 +1084,124 @@ const ProfilePage = () => {
           {activeTab === "credits" && (
             <div className="card shadow-sm">
               <div className="card-body">
-                <h2 className="h4 mb-4">
-                  <FontAwesomeIcon
-                    icon={faWallet}
-                    className="text-primary mr-2"
-                  />
-                  Mis Créditos
-                </h2>
+                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+                  <h2 className="h4 mb-0">
+                    <FontAwesomeIcon
+                      icon={faWallet}
+                      className="text-primary mr-2"
+                    />
+                    Mis Creditos
+                  </h2>
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => fetchWalletTransactions(true)}
+                    disabled={walletTxLoading}
+                  >
+                    <FontAwesomeIcon icon={faSyncAlt} className="mr-1" />
+                    Actualizar
+                  </button>
+                </div>
 
                 <div className="card bg-light mb-4">
                   <div className="card-body text-center py-4">
                     <h3 className="display-4 text-primary mb-2">
-                      ${userData.credits.toFixed(2)}
+                      ${formatCurrency(walletAmount)}
                     </h3>
                     <p className="text-muted mb-0">Saldo disponible</p>
+                  </div>
+                </div>
+
+                {walletTxError && (
+                  <div className="alert alert-danger">{walletTxError}</div>
+                )}
+
+                <div className="card mb-4">
+                  <div className="card-body">
+                    <h5 className="card-title mb-3">
+                      <FontAwesomeIcon
+                        icon={faHistory}
+                        className="text-info mr-2"
+                      />
+                      Movimientos recientes
+                    </h5>
+
+                    {walletTxLoading && walletTransactions.length === 0 && (
+                      <div className="text-center py-3">
+                        <div
+                          className="spinner-border text-primary"
+                          role="status"
+                        >
+                          <span className="sr-only">Cargando...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {!walletTxLoading && walletTransactions.length === 0 && (
+                      <div className="alert alert-info mb-0">
+                        No hay transacciones registradas.
+                      </div>
+                    )}
+
+                    {walletTransactions.length > 0 && (
+                      <div className="table-responsive">
+                        <table className="table table-sm table-hover mb-0">
+                          <thead>
+                            <tr>
+                              <th>Fecha</th>
+                              <th>Movimiento</th>
+                              <th className="text-right">Monto</th>
+                              <th>Moneda</th>
+                              <th className="text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {walletTransactions.map((tx) => (
+                              <tr key={tx._id || tx.id}>
+                                <td>{formatDate(tx.createdAt || tx.date)}</td>
+                                <td>
+                                  {tx.type === "credit"
+                                    ? "Recarga"
+                                    : tx.type === "debit"
+                                    ? "Descuento"
+                                    : tx.type ||
+                                      tx.kind ||
+                                      tx.action ||
+                                      tx.category ||
+                                      "Movimiento"}
+                                </td>
+                                <td className="text-right">
+                                  ${formatAmountFromCents(
+                                    tx.amountCents ??
+                                      tx.amount ??
+                                      tx.value ??
+                                      tx.total ??
+                                      0
+                                  )}
+                                </td>
+                                <td>{tx.currency || "USD"}</td>
+                                <td className="text-right">
+                                  ${formatAmountFromCents(
+                                    tx.balanceAfterCents ?? 0
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {walletHasMore && walletTransactions.length > 0 && (
+                      <div className="text-center mt-3">
+                        <button
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => fetchWalletTransactions(false)}
+                          disabled={walletTxLoading}
+                        >
+                          {walletTxLoading ? "Cargando..." : "Cargar mas"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -922,38 +1214,14 @@ const ProfilePage = () => {
                             icon={faPlusCircle}
                             className="text-success mr-2"
                           />
-                          Recargar créditos
+                          Recargar creditos
                         </h5>
                         <p className="card-text">
-                          Añade más créditos a tu cuenta para realizar compras.
+                          Anade mas creditos a tu cuenta para realizar compras.
                         </p>
-                        <button className="btn btn-success">
+                        <button className="btn btn-success" onClick={handleRedeem}>
                           <FontAwesomeIcon icon={faPlus} className="mr-1" />
                           Recargar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-md-6 mb-3">
-                    <div className="card h-100">
-                      <div className="card-body">
-                        <h5 className="card-title">
-                          <FontAwesomeIcon
-                            icon={faHistory}
-                            className="text-info mr-2"
-                          />
-                          Historial de transacciones
-                        </h5>
-                        <p className="card-text">
-                          Revisa todas tus transacciones y movimientos de
-                          crédito.
-                        </p>
-                        <button className="btn btn-info">
-                          <FontAwesomeIcon
-                            icon={faCheckCircle}
-                            className="mr-1"
-                          />
-                          Ver historial
                         </button>
                       </div>
                     </div>

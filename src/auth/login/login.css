@@ -1,0 +1,35 @@
+﻿.auth-bg {
+  min-height: 100vh;
+  padding: 32px 16px;
+  background: radial-gradient(circle at top, rgba(23, 105, 106, 0.12), transparent 55%),
+    linear-gradient(135deg, #f8f9fb 0%, #eef1f5 100%);
+}
+
+.auth-card {
+  border: 0;
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(30, 33, 44, 0.12);
+}
+
+.auth-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(23, 105, 106, 0.2);
+  border-color: rgba(23, 105, 106, 0.5);
+}
+
+.auth-submit {
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.auth-microcopy {
+  font-size: 0.75rem;
+  color: #8c8f95;
+  margin-left: 1.6rem;
+  margin-top: 4px;
+}
+
+@media (max-width: 575px) {
+  .auth-card {
+    padding: 24px;
+  }
+}

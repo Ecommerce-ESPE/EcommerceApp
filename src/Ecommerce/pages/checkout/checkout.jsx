@@ -398,17 +398,18 @@ const total = Math.max(subtotalConDescuento + impuestosCalculados + costoEnvio, 
       const token = localStorage.getItem("token");
 
       // Llamar a la API de transacciones
-      const response = await fetch(
-        "https://backend-ecommerce-aasn.onrender.com/api/transaction/process",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-          body: JSON.stringify(transactionData),
-        }
-      );
+        const response = await fetch(
+          "https://backend-ecommerce-aasn.onrender.com/api/transaction/process",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
+              "x-checkout-origin": "online",
+            },
+            body: JSON.stringify(transactionData),
+          }
+        );
 
       const result = await response.json();
 

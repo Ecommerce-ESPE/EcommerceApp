@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Countdown } from "./Countdown/Countdown";
 import axios from "axios";
 import { API_BASE } from "../services/api";
+import { Link, useNavigate } from "react-router-dom";
 
 export const BannersPromo = () => {
   const [banners, setBanners] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -20,36 +22,47 @@ export const BannersPromo = () => {
   }, []);
 
   // Filtrar banners activos (no finalizados)
-  const bannersActivos = banners.filter(banner => banner.estado !== "finalizado");
+  const bannersActivos = banners.filter((banner) => banner.estado !== "finalizado");
 
-  // Tomar máximo 4 banners activos
+  // Tomar maximo 4 banners activos
   const bannersToShowRaw = bannersActivos.slice(0, 4);
 
-  // Si sólo hay uno, ajustar colSize a col-lg-12
-  const bannersToShow = bannersToShowRaw.length === 1
-    ? [{ ...bannersToShowRaw[0], colSize: "col-lg-12" }]
-    : bannersToShowRaw;
+  // Si solo hay uno, ajustar colSize a col-lg-12
+  const bannersToShow =
+    bannersToShowRaw.length === 1
+      ? [{ ...bannersToShowRaw[0], colSize: "col-lg-12" }]
+      : bannersToShowRaw;
 
   if (bannersToShow.length === 0) {
-    return <div className="text-center p-4">No hay promociones disponibles en este momento.</div>;
+    return (
+      <div className="text-center p-4">
+        No hay promociones disponibles en este momento.
+      </div>
+    );
   }
 
   return (
     <div className="row mx-n2">
       {bannersToShow.map((banner) => {
-        // Para promos, determinar mensaje y fecha para countdown según estado
+        // Para promos, determinar mensaje y fecha para countdown segun estado
         let mensaje = "";
         let countdownDate = null;
 
         if (banner.tipo === "promo") {
           if (banner.estado === "proximo") {
-            mensaje = "¡Faltan pocos días para iniciar esta promoción!";
+            mensaje = "Faltan pocos dias para iniciar esta promocion";
             countdownDate = new Date(banner.startDate);
           } else if (banner.estado === "enCurso") {
-            mensaje = "¡Aprovecha la oferta hasta que finalice!";
+            mensaje = "Aprovecha la oferta hasta que finalice";
             countdownDate = new Date(banner.endDate);
           }
         }
+
+        const handleNavigate = () => {
+          if (banner?.href) {
+            navigate(banner.href);
+          }
+        };
 
         return (
           <div key={banner._id} className={`${banner.colSize} px-2 mb-4`}>
@@ -60,19 +73,38 @@ export const BannersPromo = () => {
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 minHeight: "320px",
+                cursor: "pointer",
+              }}
+              role="button"
+              tabIndex={0}
+              onClick={handleNavigate}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleNavigate();
+                }
               }}
             >
               <div className="p-4 p-md-5">
-                <h5 className="text-uppercase mb-2 text-primary h6" style={{ letterSpacing: "1px" }}>
+                <h5
+                  className="text-uppercase mb-2 text-primary h6"
+                  style={{ letterSpacing: "1px" }}
+                >
                   {banner.subtitle}
                 </h5>
-                <h2 className="fw-bold mb-4 text-white h4" style={{ whiteSpace: "pre-line" }}>
+                <h2
+                  className="fw-bold mb-4 text-white h4"
+                  style={{ whiteSpace: "pre-line" }}
+                >
                   {banner.title}
                 </h2>
 
-                <a href={banner.href} className="btn btn-outline-light btn-sm mb-3">
+                <Link
+                  to={banner.href}
+                  className="btn btn-outline-light btn-sm mb-3"
+                >
                   {banner.buttonText}
-                </a>
+                </Link>
 
                 {/* Solo si es promo y tiene countdown */}
                 {banner.tipo === "promo" && countdownDate && (

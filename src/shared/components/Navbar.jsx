@@ -101,7 +101,14 @@ const initialMenuData = {
 export const NavbarComponent = () => {
   const { cart, setShowCart } = useContext(CartContext);
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, wallet } = useAuth();
+  const walletAmount =
+    wallet?.balance ??
+    wallet?.amount ??
+    wallet?.credits ??
+    user?.wallet ??
+    user?.credits ??
+    0;
   // Logout handler
   const handleLogout = () => {
     logout();
@@ -209,7 +216,7 @@ export const NavbarComponent = () => {
                               {user.email || ""}
                             </p>
                             <p className="mb-2 text-muted small font-weight-bold">
-                               $ {(user?.wallet ?? 0).toFixed(2)} Dolares
+                               $ {Number(walletAmount || 0).toFixed(2)} Dolares
                             </p>
                           </div>
                         </div>
@@ -217,7 +224,7 @@ export const NavbarComponent = () => {
                         <hr className="my-2" />
 
                         <Link
-                          to="/dashboard/profile"
+                          to="/account/profile"
                           className="dropdown-item d-flex align-items-center"
                         >
                           <i className="cxi-user mr-2"></i>
