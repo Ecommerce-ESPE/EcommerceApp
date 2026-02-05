@@ -31,7 +31,28 @@ const ProductPage = ({ addToCart }) => {
   }, [id]);
 
   if (loading) {
-    return <div className="container py-5">Cargando producto...</div>;
+    return (
+      <section className="container py-5">
+        <div className="row">
+          <div className="col-md-6 mb-4">
+            <div className="bg-secondary rounded" style={{ height: "420px" }}></div>
+            <div className="d-flex mt-3">
+              <div className="bg-secondary rounded mr-2" style={{ width: 64, height: 64 }}></div>
+              <div className="bg-secondary rounded mr-2" style={{ width: 64, height: 64 }}></div>
+              <div className="bg-secondary rounded" style={{ width: 64, height: 64 }}></div>
+            </div>
+          </div>
+          <div className="col-md-6 pl-xl-5">
+            <div className="bg-secondary rounded mb-3" style={{ height: 24, width: "45%" }}></div>
+            <div className="bg-secondary rounded mb-3" style={{ height: 36, width: "60%" }}></div>
+            <div className="bg-secondary rounded mb-4" style={{ height: 18, width: "35%" }}></div>
+            <div className="bg-secondary rounded mb-3" style={{ height: 48, width: "100%" }}></div>
+            <div className="bg-secondary rounded mb-3" style={{ height: 48, width: "100%" }}></div>
+            <div className="bg-secondary rounded" style={{ height: 48, width: "100%" }}></div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   if (error) {
@@ -53,6 +74,39 @@ const ProductPage = ({ addToCart }) => {
           stock:  selectedProduct.value.reduce((acc, v) => acc + (v.stock || 0), 0),
         }}
       />
+
+      <nav className="bg-secondary mb-3" aria-label="breadcrumb">
+        <div className="container">
+          <ol className="breadcrumb breadcrumb-alt mb-0">
+            <li className="breadcrumb-item">
+              <a href="/">
+                <i className="ci-home"></i>
+              </a>
+            </li>
+            <li className="breadcrumb-item">
+              <a href="/shop">
+                {selectedProduct.category?.name || "Categoria"}
+              </a>
+            </li>
+            <li className="breadcrumb-item">
+              <a href="/shop">
+                {selectedProduct.subcategory?.name || "Subcategoria"}
+              </a>
+            </li>
+            <li className="breadcrumb-item">
+              <a href="/shop">
+                {selectedProduct.brand?.name ||
+                  (typeof selectedProduct.brand === "string"
+                    ? selectedProduct.brand
+                    : "Marca")}
+              </a>
+            </li>
+            <li className="breadcrumb-item active" aria-current="page">
+              {selectedProduct.nameProduct}
+            </li>
+          </ol>
+        </div>
+      </nav>
 
       {/* Título de página */}
       <section className="container d-md-flex align-items-center justify-content-between py-3 py-md-4 mb-3">

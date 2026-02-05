@@ -3,6 +3,9 @@ import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
 import { useCatalog } from "./useCatalog";
 import ProductCard from "./ProductCard";
+import PromoBannerTop from "./PromoBannerTop";
+import PromoBannerInline from "./PromoBannerInline";
+import CategoryMiniBanner from "./CategoryMiniBanner";
 import FiltersSidebar from "./FiltersSidebar";
 import Toolbar from "./Toolbar";
 import { CartShop } from "../../components/carshop";
@@ -133,6 +136,7 @@ const CatalogComponent = () => {
           </div>
         </div>
 
+
         <div className="row flex-lg-nowrap">
           {/* Sidebar desktop */}
           <FiltersSidebar
@@ -182,6 +186,17 @@ const CatalogComponent = () => {
 
           {/* Main product grid */}
           <div className="col">
+            <PromoBannerInline />
+            <div className="category-mini-banner-list">
+              {categories.map((cat) => (
+                <CategoryMiniBanner
+                  key={cat._id}
+                  categoryName={cat.name}
+                  imageUrl={cat.images?.[0]?.imgUrl || cat.image || cat.banner || cat.icon}
+                  link="/catalogo"
+                />
+              ))}
+            </div>
             {loading ? (
               <div
                 className="d-flex justify-content-center align-items-center"

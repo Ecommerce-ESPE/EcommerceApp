@@ -4,6 +4,7 @@ import { CartShop } from "../../components/carshop";
 import { PromoBar } from "../../components/promo-bar";
 import { BannersPromo } from "../../components/BannersPromo";
 import PopularProductCarousel from "../../components/popularCarousel";
+import PopularCategories from "../../components/popular_categories";
 
 export const HomeComponent = () => {
   return (
@@ -32,7 +33,7 @@ export const HomeComponent = () => {
           </a>
         </div>
         <PopularProductCarousel />
-
+        <PopularCategories />
        <div className="text-center mb-5 pb-2">
           <h2 className="h2">Ofertas Especiales</h2>
         </div>

@@ -1,8 +1,11 @@
 import { useEffect, useState, useContext } from "react";
 import { CartShop } from "../../components/carshop";
 import { CartContext } from "../../context/cartContext";
-import { notyf } from '../../../utils/notifications';
+import { notyf } from "../../../utils/notifications";
 import { API_BASE } from "../../services/api";
+import PromoBannerTop from "./PromoBannerTop";
+import PromoBannerInline from "./PromoBannerInline";
+import CategoryMiniBanner from "./CategoryMiniBanner";
 
 export const CatalogoComponent = () => {
   const {
@@ -320,6 +323,8 @@ export const CatalogoComponent = () => {
         </div>
       </div>
 
+      <PromoBannerTop />
+
       <div className="row flex-lg-nowrap">
         {/* Filters (sidebar) */}
         <div id="filtersSidebar" className="col-lg-3 pr-lg-4">
@@ -512,6 +517,17 @@ export const CatalogoComponent = () => {
 
         {/* Product grid */}
         <div className="col">
+          <PromoBannerInline />
+          <div className="category-mini-banner-list">
+            {categories.map((cat) => (
+              <CategoryMiniBanner
+                key={cat._id}
+                categoryName={cat.name}
+                imageUrl={cat.images?.[0]?.imgUrl || cat.image || cat.banner || cat.icon}
+                link="/catalogo"
+              />
+            ))}
+          </div>
           <div
             className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-3"
             data-filters-columns

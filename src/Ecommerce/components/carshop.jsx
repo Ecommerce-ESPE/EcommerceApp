@@ -88,7 +88,7 @@ export const CartShop = () => {
 
         <div className="cs-offcanvas-body">
           {cart.map((item) => (
-            <div key={item.id} className="media p-4 border-bottom mx-n4">
+            <div key={item.sizeId || item.productId || item.id} className="media p-4 border-bottom mx-n4">
               <div style={{ minWidth: "80px" }}>
                 <img
                   src={item.image}

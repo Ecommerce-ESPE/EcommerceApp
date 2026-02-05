@@ -1,36 +1,34 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useMemo } from "react";
 import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
 
 const ProductInfo = ({ product }) => {
-  // Encontrar la primera opción con stock disponible
+  const { addToCart, setShowCart } = useContext(CartContext);
+
   const findAvailableOption = () => {
-    const availableOption = product.value.find(v => v.stock > 0);
-    return availableOption ? availableOption._id : product.value[0]?._id || "";
+    const availableOption = product?.value?.find((v) => v.stock > 0);
+    return availableOption ? availableOption._id : product?.value?.[0]?._id || "";
   };
 
   const [selectedValue, setSelectedValue] = useState(findAvailableOption());
   const [quantity, setQuantity] = useState(1);
 
-  const { addToCart, setShowCart } = useContext(CartContext);
+  const selectedOption = useMemo(
+    () => product?.value?.find((v) => v._id === selectedValue),
+    [product, selectedValue]
+  );
 
-  const selectedOption = product.value.find((v) => v._id === selectedValue);
-
-  // Efecto para verificar si la opción seleccionada tiene stock
   useEffect(() => {
-    if (selectedOption?.stock === 0) {
-      const availableOption = findAvailableOption();
-      if (availableOption !== selectedValue) {
-        setSelectedValue(availableOption);
-        setQuantity(1);
-      }
+    if (!selectedOption && product?.value?.length) {
+      setSelectedValue(findAvailableOption());
+      setQuantity(1);
     }
-  }, [selectedOption]);
+  }, [product, selectedOption]);
 
   const handleAddToCart = () => {
     if (!selectedOption || selectedOption.stock === 0) {
       notyf.error({
-        message: "Lo sentimos, este producto no está disponible actualmente",
+        message: "Lo sentimos, este producto no esta disponible actualmente",
         dismissible: true,
       });
       return;
@@ -61,72 +59,111 @@ const ProductInfo = ({ product }) => {
     });
   };
 
-  // Promoción activa
   const now = new Date();
-  const promo = product.promotion;
+  const promo = product?.promotion;
   const promoActive =
     promo?.active &&
     new Date(promo.startDate) <= now &&
     now <= new Date(promo.endDate);
 
-  // Verificar si hay stock disponible en alguna opción
-  const hasStockAvailable = product.value.some(v => v.stock > 0);
+  const hasStockAvailable = product?.value?.some((v) => v.stock > 0);
+  const selectedStock = selectedOption?.stock ?? 0;
+  const baseOriginal = selectedOption?.originalPrice ?? product?.pricing?.original ?? 0;
+  const baseDiscount = selectedOption?.discountPrice ?? product?.pricing?.promo ?? null;
+  const showPromo = promoActive && baseDiscount != null;
+  const displayPrice = showPromo ? baseDiscount : baseOriginal;
+  const savings = showPromo ? Math.max(0, baseOriginal - baseDiscount) : 0;
+
+  const brand =
+    product?.brand && typeof product.brand === "object" ? product.brand : {};
+  const brandName =
+    brand?.name || (typeof product?.brand === "string" ? product.brand : "Marca");
+  const brandLogo = brand?.logoUrl || "";
+  const brandWebsite = brand?.website || "";
+
+  const ctaDisabled = !hasStockAvailable || selectedStock <= 0;
 
   return (
     <div>
+      <div className="d-flex align-items-center mb-2">
+        {brandLogo ? (
+          <img
+            src={brandLogo}
+            alt={brandName}
+            className="rounded bg-light"
+            style={{ width: 40, height: 40, objectFit: "contain" }}
+          />
+        ) : (
+          <div
+            className="rounded bg-secondary d-flex align-items-center justify-content-center text-uppercase"
+            style={{ width: 40, height: 40, fontWeight: 700, color: "#424551" }}
+          >
+            {brandName?.[0] || "M"}
+          </div>
+        )}
+        <div className="ml-2">
+          <span className="d-block text-muted font-size-xs">Marca</span>
+          {brandWebsite ? (
+            <a
+              className="text-decoration-none"
+              href={brandWebsite}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {brandName}
+            </a>
+          ) : (
+            <span className="font-weight-bold">{brandName}</span>
+          )}
+        </div>
+      </div>
+
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
-        {/* Precio */}
-        <div className="d-flex align-items-center mb-sm-0 mb-4">
+        <div className="mb-sm-0 mb-3">
           {hasStockAvailable ? (
             <>
-              <span className="h3 d-inline-block mb-0 text-danger">
-                {promoActive && selectedOption?.discountPrice != null
-                  ? `$${(selectedOption.discountPrice || 0).toFixed(2)}` 
-                  : `$${(selectedOption?.originalPrice || 0).toFixed(2)}`} 
-              </span>
-              {promoActive &&
-                selectedOption?.originalPrice != null &&
-                selectedOption?.discountPrice != null &&
-                selectedOption.originalPrice > selectedOption.discountPrice && (
-                  <span
-                    className="ml-2 text-muted"
-                    style={{ textDecoration: "line-through" }}
-                  >
-                    ${(selectedOption.originalPrice || 0).toFixed(2)} 
+              <div className="d-flex align-items-end flex-wrap">
+                <span className="h2 d-inline-block mb-0 text-danger">
+                  ${displayPrice.toFixed(2)}
+                </span>
+                {showPromo && baseOriginal > displayPrice && (
+                  <del className="ml-2 text-muted">${baseOriginal.toFixed(2)}</del>
+                )}
+                {showPromo && (
+                  <span className="badge badge-danger ml-2">
+                    -{promo?.percentage}%
                   </span>
                 )}
-              {promoActive && (
-                <span className="badge badge-success ml-2">
-                  -{promo.percentage}%
+              </div>
+              {savings > 0 && (
+                <span className="d-block text-success font-size-sm mt-1">
+                  Ahorras ${savings.toFixed(2)}
                 </span>
               )}
             </>
           ) : (
-            <span className="h4 text-danger">Producto agotado</span>
+            <span className="h4 text-danger mb-0">Agotado</span>
           )}
         </div>
 
-        {/* Rating */}
         <div className="text-sm-right">
           <div className="star-rating ml-auto">
             {[...Array(5)].map((_, i) => (
               <i
                 key={i}
                 className={`sr-star cxi-star-filled ${
-                  i < product.rating ? "active" : ""
+                  i < (product?.rating || 0) ? "active" : ""
                 }`}
               ></i>
             ))}
           </div>
           <span className="font-size-sm text-muted">
-            Rating: {product.rating}/5
+            Rating: {product?.rating || 0}/5
           </span>
         </div>
       </div>
 
-      {/* Formulario */}
       <form className="row">
-        {/* Tamaño / modelo */}
         <div className="col-12">
           <div className="form-group">
             <label htmlFor="size">Tipo :</label>
@@ -140,12 +177,8 @@ const ProductInfo = ({ product }) => {
               }}
               disabled={!hasStockAvailable}
             >
-              {product.value.map((v) => (
-                <option 
-                  key={v._id} 
-                  value={v._id}
-                  disabled={v.stock === 0}
-                >
+              {product?.value?.map((v) => (
+                <option key={v._id} value={v._id} disabled={v.stock === 0}>
                   {v.size} {v.stock === 0 ? "(Agotado)" : ""}
                 </option>
               ))}
@@ -153,13 +186,12 @@ const ProductInfo = ({ product }) => {
           </div>
         </div>
 
-        {/* Cantidad */}
         <div className="col-lg-2 col-4">
           <div className="form-group">
             <select
               className="form-control custom-select"
               value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value))}
+              onChange={(e) => setQuantity(parseInt(e.target.value, 10))}
               disabled={!selectedOption || selectedOption.stock === 0}
             >
               {selectedOption?.stock > 0 ? (
@@ -178,28 +210,27 @@ const ProductInfo = ({ product }) => {
           </div>
         </div>
 
-        {/* Botones */}
         <div className="col-lg-6">
           <button
             type="button"
             className="btn btn-block btn-primary"
             onClick={handleAddToCart}
-            disabled={!hasStockAvailable}
+            disabled={ctaDisabled}
           >
             <i className="cxi-cart mr-2"></i>
-            {!hasStockAvailable 
-              ? "Producto agotado" 
-              : selectedOption?.stock === 0 
-                ? "Sin stock" 
-                : "Añadir al carrito"}
+            {!hasStockAvailable
+              ? "Agotado"
+              : selectedOption?.stock === 0
+              ? "Sin stock"
+              : "Anadir al carrito"}
           </button>
         </div>
 
         <div className="col-lg-4 col-8">
-          <button 
-            className="btn btn-block btn-outline-primary" 
+          <button
+            className="btn btn-block btn-outline-primary"
             type="button"
-            disabled={!hasStockAvailable}
+            disabled={ctaDisabled}
           >
             <i className="cxi-heart mr-2"></i>
             Favorito
@@ -207,22 +238,100 @@ const ProductInfo = ({ product }) => {
         </div>
       </form>
 
-      {/* Mensaje cuando no hay stock */}
       {!hasStockAvailable && (
         <div className="alert alert-warning mt-3">
-          Lo sentimos, este producto no está disponible actualmente. Por favor revisa más tarde.
+          Lo sentimos, este producto no esta disponible actualmente. Por favor
+          revisa mas tarde.
         </div>
       )}
 
-      {/* Promoción activa */}
-      {promoActive && hasStockAvailable && (
+      {showPromo && hasStockAvailable && (
         <div className="alert alert-info mt-4">
-          <strong>¡Oferta especial!</strong> Este producto tiene un descuento
-          del
-          <span className="p1"> {promo?.percentage}% </span> válido hasta el{" "}
-          {new Date(promo.endDate).toLocaleDateString()}.
+          <strong>Oferta especial!</strong> Descuento del{" "}
+          <span className="font-weight-bold">{promo?.percentage}%</span> valido
+          hasta el {new Date(promo.endDate).toLocaleDateString()}.
         </div>
       )}
+
+      <div
+        className="accordion-alt mt-4"
+        id={`product-accordion-${product?._id || "main"}`}
+      >
+        <div className="card">
+          <div className="card-header">
+            <h3 className="accordion-alt-heading">
+              <a
+                href={`#delivery-${product?._id || "main"}`}
+                data-toggle="collapse"
+                aria-expanded="true"
+                className="collapsed"
+              >
+                Delivery
+              </a>
+            </h3>
+          </div>
+          <div
+            className="collapse show"
+            id={`delivery-${product?._id || "main"}`}
+            data-parent={`#product-accordion-${product?._id || "main"}`}
+          >
+            <div className="card-body font-size-sm text-muted">
+              Entrega estandar en 3-5 dias habiles. Envio express disponible al
+              finalizar la compra.
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="accordion-alt-heading">
+              <a
+                href={`#return-${product?._id || "main"}`}
+                data-toggle="collapse"
+                aria-expanded="false"
+                className="collapsed"
+              >
+                Return
+              </a>
+            </h3>
+          </div>
+          <div
+            className="collapse"
+            id={`return-${product?._id || "main"}`}
+            data-parent={`#product-accordion-${product?._id || "main"}`}
+          >
+            <div className="card-body font-size-sm text-muted">
+              Devoluciones gratuitas dentro de los 30 dias posteriores a la
+              entrega. Producto sin usar y con empaques originales.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="d-flex align-items-center flex-wrap mt-4">
+        <span className="text-muted font-size-sm mr-2">Pagos seguros:</span>
+        <img
+          src="/assets/img/ecommerce/checkout/visa.jpg"
+          alt="Visa"
+          className="mr-2 mb-2"
+          width="48"
+          height="30"
+        />
+        <img
+          src="/assets/img/ecommerce/checkout/master-card.jpg"
+          alt="Mastercard"
+          className="mr-2 mb-2"
+          width="48"
+          height="30"
+        />
+        <img
+          src="/assets/img/ecommerce/checkout/pay-pal.jpg"
+          alt="PayPal"
+          className="mb-2"
+          width="48"
+          height="30"
+        />
+      </div>
     </div>
   );
 };
