@@ -1,0 +1,193 @@
+.product-tabs-section {
+  width: 100%;
+}
+
+.productTabs__panel {
+  border: 1px solid #e6ebf3;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.productTabs__nav {
+  padding: 0.75rem 0.75rem 0.7rem;
+  margin: 0;
+  border-bottom: 1px solid #e8edf4;
+  gap: 0.55rem;
+}
+
+.productTabs__tab {
+  border: 1px solid #d5dceb;
+  border-radius: 999px;
+  background: #f4f7fc;
+  color: #4e5d74;
+  font-weight: 600;
+  padding: 0.42rem 0.9rem;
+  line-height: 1.25;
+}
+
+.productTabs__tab:hover {
+  border-color: #a4bddf;
+  color: #1c4f90;
+  background: #edf3fd;
+}
+
+.productTabs__tab.active,
+.productTabs__tab.active:hover {
+  color: #11437f;
+  border-color: #5e95d8;
+  background: #eaf2fd;
+  box-shadow: none;
+}
+
+.productTabs__content {
+  padding: 0.8rem 0.95rem 0.95rem;
+}
+
+.productTabs__pane h3 {
+  margin-top: 0;
+}
+
+.productTabs__description {
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.productTabs__description h1,
+.productTabs__description h2,
+.productTabs__description h3,
+.productTabs__description h4,
+.productTabs__description h5,
+.productTabs__description h6 {
+  color: #1f2a3d;
+  margin: 0.8rem 0 0.5rem;
+}
+
+.productTabs__description p {
+  margin-bottom: 0.75rem;
+}
+
+.productTabs__description ul,
+.productTabs__description ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.1rem;
+}
+
+.productTabs__description li {
+  margin-bottom: 0.32rem;
+}
+
+.productTabs__summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0.95rem;
+}
+
+.productTabs__summaryItem {
+  border: 1px solid #e7ecf4;
+  border-radius: 10px;
+  background: #fdfefe;
+  padding: 0.7rem 0.8rem;
+}
+
+.productTabs__label {
+  display: block;
+  color: #6d7788;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.productTabs__value {
+  color: #1f2a3d;
+  font-weight: 600;
+}
+
+.productTabs__sku {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: #1f2a3d;
+  font-size: 0.89rem;
+}
+
+.productTabs__inlineBlock {
+  border-top: 1px solid #e8edf4;
+  margin-top: 0.2rem;
+  padding-top: 0.8rem;
+}
+
+.productTabs__sectionTitle {
+  margin: 0 0 0.6rem;
+  color: #5f697b;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.productTabs__accordion {
+  margin-top: 0.8rem;
+}
+
+.productTabs__accordionItem {
+  border-color: #e7ecf4;
+  background: transparent;
+}
+
+.productTabs__accordion .card-header {
+  background: transparent;
+}
+
+.productTabs__specList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productTabs__specRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.52rem 0;
+  border-bottom: 1px solid #eef2f8;
+}
+
+.productTabs__specRow:last-child {
+  border-bottom: 0;
+}
+
+.productTabs__specKey {
+  color: #697487;
+}
+
+.productTabs__specValue {
+  color: #1f2a3d;
+  font-weight: 600;
+  text-align: right;
+}
+
+.productTabs__reviewEmpty {
+  border: 1px solid #e8edf4;
+  border-radius: 10px;
+  background: #fdfefe;
+  padding: 0.85rem 0.95rem;
+}
+
+@media (max-width: 820px) {
+  .productTabs__content {
+    padding: 0.75rem;
+  }
+
+  .productTabs__summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .productTabs__specRow {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .productTabs__specValue {
+    text-align: left;
+  }
+}

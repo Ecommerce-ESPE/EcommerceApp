@@ -7,6 +7,7 @@ import {
   processTransaction,
   buildTransactionData,
 } from "../../services/checkoutService";
+import { setPrimaryAddress } from "../../services/account";
 
 export const API_BASE =
   process.env.NODE_ENV === "production"
@@ -101,12 +102,16 @@ export const useCheckout = () => {
         setUserData(usuario);
 
         if (usuario?.address?.length > 0) {
-          const validAddresses = usuario.address.filter(
-            (addr) => addr && (addr.directionPrincipal || addr.address)
-          );
+          const validAddresses = usuario.address
+            .map((addr, index) => ({ addr, index }))
+            .filter(({ addr }) => addr && (addr.directionPrincipal || addr.address));
 
           if (validAddresses.length > 0) {
-            setSelectedAddress(validAddresses[0]);
+            const primary =
+              validAddresses.find(({ addr }) => addr?.isPrimary) ||
+              validAddresses[0];
+            setSelectedAddress(primary.addr);
+            setSelectedAddressIndex(primary.index);
           }
         }
       } catch (error) {
@@ -231,17 +236,27 @@ export const useCheckout = () => {
       }
 
       const result = await response.json();
-      const updatedUser = { ...userData };
+      const createdAddress = result.address || fullAddress;
 
-      if (!updatedUser.address) updatedUser.address = [];
-      updatedUser.address.push(result.address);
+      setUserData((prev) => {
+        const prevAddresses = prev?.address || [];
+        const nextIndex = prevAddresses.length;
+        const nextAddress = {
+          ...createdAddress,
+          isPrimary: true,
+        };
+        const updated = [
+          ...prevAddresses.map((addr) => ({ ...addr, isPrimary: false })),
+          nextAddress,
+        ];
+        return { ...prev, address: updated };
+      });
 
-      setUserData((prev) => ({
-        ...prev,
-        address: [...(prev.address || []), result.address],
-      }));
-
-      setSelectedAddress(result.address);
+      // Seleccionar y marcar como primaria en backend
+      const nextIndex = (userData?.address || []).length;
+      setSelectedAddress(createdAddress);
+      setSelectedAddressIndex(nextIndex);
+      await setPrimaryAddress(nextIndex);
       setShowAddressForm(false);
 
       setNewAddress({
@@ -318,6 +333,31 @@ export const useCheckout = () => {
     }));
   };
 
+  const selectAddress = async (address, index) => {
+    setSelectedAddress(address);
+    setSelectedAddressIndex(index);
+
+    if (!isAuthenticated) return;
+
+    try {
+      await setPrimaryAddress(index);
+      setUserData((prev) => {
+        if (!prev?.address) return prev;
+        const updated = prev.address.map((addr, idx) => ({
+          ...addr,
+          isPrimary: idx === index,
+        }));
+        return { ...prev, address: updated };
+      });
+      notyf.success("Dirección principal actualizada");
+    } catch (error) {
+      console.error("Error actualizando dirección principal:", error);
+      notyf.error(
+        error?.message || "No se pudo actualizar la dirección principal"
+      );
+    }
+  };
+
   const completeOrder = async () => {
     const transactionData = buildTransactionData(
       isAuthenticated,
@@ -366,6 +406,7 @@ export const useCheckout = () => {
     // 📍 Dirección del usuario autenticado
     selectedAddress,
     setSelectedAddress,
+    selectAddress,
 
     // 📝 Nueva dirección (para usuarios que agregan una)
     newAddress,

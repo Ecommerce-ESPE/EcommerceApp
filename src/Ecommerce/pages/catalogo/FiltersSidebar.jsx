@@ -1,135 +1,197 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import SimpleBar from "simplebar-react";
 import "simplebar-react/dist/simplebar.min.css";
+import "./filters-panel.scoped.css";
 
 const FiltersSidebar = ({
+  className = "",
   categories,
-  filters,
+  tagsCatalog,
+  Listo,
+  filterError,
   handleCategory,
   handleSubcategory,
-  openCategory,
-  setOpenCategory,
+  handleToggleTag,
+  applyFilters,
+  clearFilters,
 }) => {
+  const [categorySearch, setCategorySearch] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
+
+  const selectedCategory = useMemo(
+    () => categories.find((cat) => cat._id === Listo.categoryId),
+    [categories, Listo.categoryId]
+  );
+
+  const selectedSubcategory = useMemo(() => {
+    if (!selectedCategory?.subcategories?.length) return null;
+    return selectedCategory.subcategories.find((sub) => sub._id === Listo.subcategoryId) || null;
+  }, [selectedCategory, Listo.subcategoryId]);
+
+  const filteredCategories = useMemo(() => {
+    const query = categorySearch.trim().toLowerCase();
+    if (!query) return categories;
+    return categories.filter((cat) => cat.name?.toLowerCase().includes(query));
+  }, [categories, categorySearch]);
+
+  const filteredTags = useMemo(() => {
+    const query = tagSearch.trim().toLowerCase();
+    if (!query) return tagsCatalog;
+    return tagsCatalog.filter(
+      (tag) =>
+        tag.name?.toLowerCase().includes(query) ||
+        tag.slug?.toLowerCase().includes(query)
+    );
+  }, [tagsCatalog, tagSearch]);
+
+  const activeTagNames = useMemo(() => {
+    const lookup = new Map(tagsCatalog.map((tag) => [tag.slug, tag.name || tag.slug]));
+    return Listo.tags.map((slug) => ({ slug, name: lookup.get(slug) || slug }));
+  }, [Listo.tags, tagsCatalog]);
+
   return (
-    <div id="filtersSidebar" className="col-lg-3 pr-lg-4">
-      <div id="filtersOffcanvas" className="cs-offcanvas cs-offcanvas-collapse">
-        {/* Header del offcanvas */}
-        
-        {/* Body con scroll general */}
-        <div
-          className="cs-offcanvas-body accordion-alt pb-4"
-          style={{ maxHeight: "70vh", overflowY: "auto" }}
-        >
-          {/* Categorías con scroll usando SimpleBar */}
-          <div className="card border-bottom">
-            <div className="card-header pt-0 pb-3" id="category-panel">
-              <h6 className="accordion-heading mb-0">
-                <a
-                  href="#category"
-                  role="button"
-                  data-toggle="collapse"
-                  aria-expanded={openCategory === "category"}
-                  aria-controls="category"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpenCategory(
-                      openCategory === "category" ? "" : "category"
-                    );
-                  }}
-                  className="d-flex justify-content-between align-items-center text-decoration-none"
-                >
-                  Categorías
-                  <span className="accordion-indicator"></span>
-                </a>
-              </h6>
-            </div>
-
-            <div
-              className={`collapse${openCategory === "category" ? " show" : ""}`}
-              id="category"
-              aria-labelledby="category-panel"
-            >
-              <div className="cs-widget-data-list cs-filter">
-                <div className="position-relative mb-3">
-                  <input
-                    type="text"
-                    className="filter-search form-control form-control-sm pe-5"
-                    placeholder="Buscar categorías"
-                    disabled
-                  />
-                  <i className="ci-search fs-sm position-absolute top-50 end-0 translate-middle-y me-3 zindex-5"></i>
-                </div>
-
-                {/* Aquí va el scroll vertical con SimpleBar */}
-                <SimpleBar style={{ maxHeight: 192 /* 12rem */ }}>
-                  <ul className="filter-list list-unstyled pe-3 mb-0">
-                    {categories.map((cat) => (
-                      <li key={cat._id} className="filter-item mb-2">
-                        <div className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`cat-${cat._id}`}
-                            checked={filters.category === cat._id}
-                            onChange={() => handleCategory(cat._id)}
-                          />
-                          <label
-                            htmlFor={`cat-${cat._id}`}
-                            className="form-check-label d-flex justify-content-between"
-                          >
-                            <span className="filter-item-text">{cat.name}</span>
-                            {cat.count !== undefined && (
-                              <span className="ps-1 text-muted">({cat.count})</span>
-                            )}
-                          </label>
-                        </div>
-
-                        {/* Subcategorías */}
-                        {filters.category === cat._id &&
-                          cat.subcategories?.length > 0 && (
-                            <ul className="pl-4 mt-2 list-unstyled mb-0">
-                              {cat.subcategories.map((sub) => (
-                                <li className="filter-item mb-1" key={sub._id}>
-                                  <div className="form-check">
-                                    <input
-                                      type="checkbox"
-                                      className="form-check-input"
-                                      id={`sub-${sub._id}`}
-                                      checked={filters.subcategory === sub._id}
-                                      onChange={() => handleSubcategory(sub._id)}
-                                    />
-                                    <label
-                                      htmlFor={`sub-${sub._id}`}
-                                      className="form-check-label d-flex justify-content-between"
-                                    >
-                                      <span className="filter-item-text">
-                                        {sub.name}
-                                      </span>
-                                      {sub.count !== undefined && (
-                                        <span className="ps-1 text-muted">
-                                          ({sub.count})
-                                        </span>
-                                      )}
-                                    </label>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                      </li>
-                    ))}
-                  </ul>
-                </SimpleBar>
-              </div>
-            </div>
+    <aside className={`col-lg-3 pr-lg-4 ${className}`.trim()}>
+      <div className="filterPanel">
+        <div className="filterPanel__section">
+          <div className="filterPanel__titleRow">
+            <h6 className="filterPanel__title">Categorias</h6>
+            <span className="filterPanel__counter">{filteredCategories.length}</span>
           </div>
 
-          {/* Aquí irían otros filtros, por ejemplo Precio */}
-          {/* Puedes agregar más acordeones similares si lo deseas */}
+          <input
+            type="text"
+            className="filterPanel__search"
+            placeholder="Buscar categorias"
+            value={categorySearch}
+            onChange={(e) => setCategorySearch(e.target.value)}
+          />
+
+          <SimpleBar style={{ maxHeight: 220 }}>
+            <ul className="filterPanel__list" role="list">
+              {filteredCategories.map((cat) => (
+                <li key={cat._id} className="filterPanel__item">
+                  <label className="filterPanel__checkRow" htmlFor={`cat-${cat._id}`}>
+                    <input
+                      id={`cat-${cat._id}`}
+                      type="checkbox"
+                      className="filterPanel__checkbox"
+                      checked={Listo.categoryId === cat._id}
+                      onChange={() => handleCategory(cat._id)}
+                    />
+                    <span className="filterPanel__labelText">{cat.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </SimpleBar>
+        </div>
+
+        {selectedCategory?.subcategories?.length > 0 && (
+          <div className="filterPanel__section">
+            <h6 className="filterPanel__title">Subcategorias</h6>
+            <ul className="filterPanel__list" role="list">
+              {selectedCategory.subcategories.map((sub) => (
+                <li key={sub._id} className="filterPanel__item">
+                  <label className="filterPanel__checkRow" htmlFor={`sub-${sub._id}`}>
+                    <input
+                      id={`sub-${sub._id}`}
+                      type="checkbox"
+                      className="filterPanel__checkbox"
+                      checked={Listo.subcategoryId === sub._id}
+                      onChange={() => handleSubcategory(sub._id)}
+                    />
+                    <span className="filterPanel__labelText">{sub.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="filterPanel__section">
+          <div className="filterPanel__titleRow">
+            <h6 className="filterPanel__title">Tags</h6>
+            <span className="filterPanel__counter">{Listo.tags.length}</span>
+          </div>
+
+          <input
+            type="text"
+            className="filterPanel__search"
+            placeholder="Buscar tags"
+            value={tagSearch}
+            onChange={(e) => setTagSearch(e.target.value)}
+          />
+
+          <SimpleBar style={{ maxHeight: 180 }}>
+            <ul className="filterPanel__list" role="list">
+              {filteredTags.map((tag) => (
+                <li key={tag._id || tag.slug} className="filterPanel__item">
+                  <label className="filterPanel__checkRow" htmlFor={`tag-${tag.slug}`}>
+                    <input
+                      id={`tag-${tag.slug}`}
+                      type="checkbox"
+                      className="filterPanel__checkbox"
+                      checked={Listo.tags.includes(tag.slug)}
+                      onChange={() => handleToggleTag(tag.slug)}
+                    />
+                    <span className="filterPanel__labelText">{tag.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </SimpleBar>
+        </div>
+
+        {(Listo.categoryId || Listo.subcategoryId || Listo.tags.length > 0) && (
+          <div className="filterPanel__section">
+            <h6 className="filterPanel__title">Filtros activos</h6>
+            <div className="filterPanel__chips">
+              {selectedCategory && (
+                <button
+                  type="button"
+                  className="filterPanel__chip"
+                  onClick={() => handleCategory(selectedCategory._id)}
+                >
+                  {selectedCategory.name} <span>x</span>
+                </button>
+              )}
+              {selectedSubcategory && (
+                <button
+                  type="button"
+                  className="filterPanel__chip"
+                  onClick={() => handleSubcategory(selectedSubcategory._id)}
+                >
+                  {selectedSubcategory.name} <span>x</span>
+                </button>
+              )}
+              {activeTagNames.map((tag) => (
+                <button
+                  key={tag.slug}
+                  type="button"
+                  className="filterPanel__chip"
+                  onClick={() => handleToggleTag(tag.slug)}
+                >
+                  #{tag.name} <span>x</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filterError ? <p className="filterPanel__error">{filterError}</p> : null}
+
+        <div className="filterPanel__actions">
+          <button type="button" className="filterPanel__btn filterPanel__btn--primary" onClick={applyFilters}>
+            Aplicar
+          </button>
+          <button type="button" className="filterPanel__btn filterPanel__btn--ghost" onClick={clearFilters}>
+            Limpiar
+          </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 
+export { FiltersSidebar };
 export default FiltersSidebar;

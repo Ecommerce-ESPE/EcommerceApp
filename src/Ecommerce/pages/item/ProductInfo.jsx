@@ -1,6 +1,9 @@
 import { useState, useContext, useEffect, useMemo } from "react";
 import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
+import TagChips from "./TagChips";
+import "./ship-return.scoped.css";
+import { API_BASE } from "../../services/api";
 
 const ProductInfo = ({ product }) => {
   const { addToCart, setShowCart } = useContext(CartContext);
@@ -12,6 +15,9 @@ const ProductInfo = ({ product }) => {
 
   const [selectedValue, setSelectedValue] = useState(findAvailableOption());
   const [quantity, setQuantity] = useState(1);
+  const [isDeliveryOpen, setIsDeliveryOpen] = useState(true);
+  const [shippingHighlights, setShippingHighlights] = useState([]);
+  const [shippingLoading, setShippingLoading] = useState(false);
 
   const selectedOption = useMemo(
     () => product?.value?.find((v) => v._id === selectedValue),
@@ -24,6 +30,48 @@ const ProductInfo = ({ product }) => {
       setQuantity(1);
     }
   }, [product, selectedOption]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchShippingHighlights = async () => {
+      setShippingLoading(true);
+      try {
+        const response = await fetch(`${API_BASE}/config/shipping-methods/highlights`);
+        if (!response.ok) throw new Error("No se pudo cargar shipping highlights");
+
+        const data = await response.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+
+        if (isMounted) setShippingHighlights(items);
+      } catch {
+        if (isMounted) setShippingHighlights([]);
+      } finally {
+        if (isMounted) setShippingLoading(false);
+      }
+    };
+
+    fetchShippingHighlights();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const formatShippingPrice = (amount, currency) => {
+    const value = Number(amount);
+    if (!Number.isFinite(value)) return "-";
+
+    try {
+      return new Intl.NumberFormat("es-EC", {
+        style: "currency",
+        currency: currency || "USD",
+        minimumFractionDigits: 2,
+      }).format(value);
+    } catch {
+      return `${value.toFixed(2)} ${currency || "USD"}`;
+    }
+  };
 
   const handleAddToCart = () => {
     if (!selectedOption || selectedOption.stock === 0) {
@@ -163,6 +211,8 @@ const ProductInfo = ({ product }) => {
         </div>
       </div>
 
+      <TagChips tags={product?.tags} />
+
       <form className="row">
         <div className="col-12">
           <div className="form-group">
@@ -253,84 +303,84 @@ const ProductInfo = ({ product }) => {
         </div>
       )}
 
-      <div
-        className="accordion-alt mt-4"
-        id={`product-accordion-${product?._id || "main"}`}
-      >
-        <div className="card">
-          <div className="card-header">
-            <h3 className="accordion-alt-heading">
-              <a
-                href={`#delivery-${product?._id || "main"}`}
-                data-toggle="collapse"
-                aria-expanded="true"
-                className="collapsed"
-              >
-                Delivery
-              </a>
-            </h3>
-          </div>
-          <div
-            className="collapse show"
-            id={`delivery-${product?._id || "main"}`}
-            data-parent={`#product-accordion-${product?._id || "main"}`}
+      <div className="pxShipReturn mt-4">
+        <section className="pxShipReturn__section">
+          <button
+            type="button"
+            className="pxShipReturn__header"
+            onClick={() => setIsDeliveryOpen((prev) => !prev)}
+            aria-expanded={isDeliveryOpen}
           >
-            <div className="card-body font-size-sm text-muted">
-              Entrega estandar en 3-5 dias habiles. Envio express disponible al
-              finalizar la compra.
+            <span className="pxShipReturn__title">Entrega</span>
+            <span className="pxShipReturn__icon">{isDeliveryOpen ? "−" : "+"}</span>
+          </button>
+          {isDeliveryOpen && (
+            <div className="pxShipReturn__body">
+              <div className="pxShipReturn__table">
+                <div className="pxShipReturn__row pxShipReturn__row--head">
+                  <span>TIPO</span>
+                  <span>TIEMPO</span>
+                  <span>COSTO</span>
+                </div>
+                {shippingLoading && (
+                  <div className="pxShipReturn__row">
+                    <span>Cargando...</span>
+                    <span>Cargando...</span>
+                    <span>Cargando...</span>
+                  </div>
+                )}
+                {!shippingLoading && shippingHighlights.length > 0 && (
+                  <>
+                    {shippingHighlights.map((item) => (
+                      <div className="pxShipReturn__row" key={item.id}>
+                        <span>{item.type || item.delivery || "-"}</span>
+                        <span>{item.howLong || "-"}</span>
+                        <span>{formatShippingPrice(item.howMuch, item.currency)}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {!shippingLoading && shippingHighlights.length === 0 && (
+                  <div className="pxShipReturn__row">
+                    <span>-</span>
+                    <span>No hay metodos configurados</span>
+                    <span>-</span>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
+        </section>
+
+        <div className="pxShipReturn__payments">
+          <span className="pxShipReturn__paymentsLabel">Pagos seguros:</span>
+          <div className="pxShipReturn__logos">
+            <span className="pxShipReturn__logoCard">
+              <img
+                src="/assets/img/ecommerce/checkout/visa.jpg"
+                alt="Visa"
+                width="48"
+                height="30"
+              />
+            </span>
+            <span className="pxShipReturn__logoCard">
+              <img
+                src="/assets/img/ecommerce/checkout/master-card.jpg"
+                alt="Mastercard"
+                width="48"
+                height="30"
+              />
+            </span>
+            <span className="pxShipReturn__logoCard">
+              <img
+                src="/assets/img/ecommerce/checkout/pay-pal.jpg"
+                alt="PayPal"
+                width="48"
+                height="30"
+              />
+            </span>
           </div>
         </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3 className="accordion-alt-heading">
-              <a
-                href={`#return-${product?._id || "main"}`}
-                data-toggle="collapse"
-                aria-expanded="false"
-                className="collapsed"
-              >
-                Return
-              </a>
-            </h3>
-          </div>
-          <div
-            className="collapse"
-            id={`return-${product?._id || "main"}`}
-            data-parent={`#product-accordion-${product?._id || "main"}`}
-          >
-            <div className="card-body font-size-sm text-muted">
-              Devoluciones gratuitas dentro de los 30 dias posteriores a la
-              entrega. Producto sin usar y con empaques originales.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="d-flex align-items-center flex-wrap mt-4">
-        <span className="text-muted font-size-sm mr-2">Pagos seguros:</span>
-        <img
-          src="/assets/img/ecommerce/checkout/visa.jpg"
-          alt="Visa"
-          className="mr-2 mb-2"
-          width="48"
-          height="30"
-        />
-        <img
-          src="/assets/img/ecommerce/checkout/master-card.jpg"
-          alt="Mastercard"
-          className="mr-2 mb-2"
-          width="48"
-          height="30"
-        />
-        <img
-          src="/assets/img/ecommerce/checkout/pay-pal.jpg"
-          alt="PayPal"
-          className="mb-2"
-          width="48"
-          height="30"
-        />
       </div>
     </div>
   );

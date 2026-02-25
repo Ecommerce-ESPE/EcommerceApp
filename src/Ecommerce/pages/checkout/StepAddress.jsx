@@ -20,20 +20,33 @@ const StepAddress = ({
   selectedParish,
   setSelectedParish,
 
-  setSelectedAddressIndex
+  selectedAddressIndex,
+  setSelectedAddressIndex,
+  selectAddress
 }) => {
   // Preselección de dirección si no hay una
   useEffect(() => {
     if (isAuthenticated && userData?.address?.length > 0 && !selectedAddress) {
-      const validAddresses = userData.address.filter(
-        (addr) => addr && (addr.directionPrincipal || addr.address)
-      );
+      const validAddresses = userData.address
+        .map((addr, index) => ({ addr, index }))
+        .filter(({ addr }) => addr && (addr.directionPrincipal || addr.address));
 
       if (validAddresses.length > 0) {
-        setSelectedAddress(validAddresses[0]);
+        const primary =
+          validAddresses.find(({ addr }) => addr?.isPrimary) || validAddresses[0];
+        setSelectedAddress(primary.addr);
+        if (typeof setSelectedAddressIndex === "function") {
+          setSelectedAddressIndex(primary.index);
+        }
       }
     }
-  }, [userData, isAuthenticated, selectedAddress, setSelectedAddress]);
+  }, [
+    userData,
+    isAuthenticated,
+    selectedAddress,
+    setSelectedAddress,
+    setSelectedAddressIndex,
+  ]);
 
   const getCantones = () => {
     if (!selectedProvince || !locations) return [];
@@ -67,9 +80,9 @@ const StepAddress = ({
   const cantones = getCantones();
   const parroquias = getParroquias();
 
-  const validAddresses = (userData?.address || []).filter(
-    (addr) => addr && (addr.directionPrincipal || addr.provincia)
-  );
+  const validAddresses = (userData?.address || [])
+    .map((addr, index) => ({ addr, index }))
+    .filter(({ addr }) => addr && (addr.directionPrincipal || addr.provincia));
 
   return (
     <>
@@ -80,8 +93,13 @@ const StepAddress = ({
           <h3 className="h5 mb-3">Selecciona una dirección:</h3>
 
           {validAddresses.length > 0 ? (
-            validAddresses.map((addr, index) => {
-              const isSelected = selectedAddress && selectedAddress === addr;
+            validAddresses.map(({ addr, index }) => {
+              const isSelected =
+                selectedAddressIndex === index ||
+                (selectedAddress &&
+                  (selectedAddress._id || selectedAddress.id) &&
+                  (selectedAddress._id || selectedAddress.id) ===
+                    (addr._id || addr.id));
 
               return (
                 <div
@@ -97,8 +115,14 @@ const StepAddress = ({
                     name="address"
                     checked={isSelected}
                     onChange={() => {
-                      setSelectedAddress(validAddresses[index]);
-                      setSelectedAddressIndex(index); 
+                      if (typeof selectAddress === "function") {
+                        selectAddress(addr, index);
+                        return;
+                      }
+                      setSelectedAddress(addr);
+                      if (typeof setSelectedAddressIndex === "function") {
+                        setSelectedAddressIndex(index);
+                      }
                     }}
                   />
                   <label

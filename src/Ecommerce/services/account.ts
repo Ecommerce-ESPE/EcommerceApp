@@ -51,10 +51,12 @@ export const getAddresses = async (overrideToken?: string) => {
   const profile = await getProfile(overrideToken);
   const addresses = Array.isArray(profile.address) ? profile.address : [];
   return addresses.map((addr: any, index: number) => ({
+    index,
     id: addr.id || addr._id || `addr_${index + 1}`,
     label: addr.label || `Direccion ${index + 1}`,
     name: addr.name || profile.name || "",
     street: addr.directionPrincipal || addr.callePrincipal || "",
+    nCasa: addr.nCasa || addr.numero || "",
     city: addr.canton || "",
     state: addr.provincia || "",
     parish: addr.parroquia || "",
@@ -77,6 +79,65 @@ export const setPrimaryAddress = async (index: number, overrideToken?: string) =
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const message = data?.message || data?.msg || "No se pudo actualizar la dirección principal";
+    throw new Error(message);
+  }
+  return data;
+};
+
+export const deleteAddress = async (index: number, overrideToken?: string) => {
+  const token = getToken(overrideToken);
+  const response = await fetch(`${API_BASE}/user/address/${index}`, {
+    method: "DELETE",
+    headers: {
+      ...(token ? { "x-token": token } : {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.message || data?.msg || "No se pudo eliminar la dirección";
+    throw new Error(message);
+  }
+  return data;
+};
+
+export const updateAddress = async (
+  index: number,
+  payload: Record<string, any>,
+  overrideToken?: string
+) => {
+  const token = getToken(overrideToken);
+  const response = await fetch(`${API_BASE}/user/address/${index}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "x-token": token } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.message || data?.msg || "No se pudo actualizar la dirección";
+    throw new Error(message);
+  }
+  return data;
+};
+
+export const addAddress = async (
+  payload: Record<string, any>,
+  overrideToken?: string
+) => {
+  const token = getToken(overrideToken);
+  const response = await fetch(`${API_BASE}/user/add-address`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "x-token": token } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.message || data?.msg || "No se pudo crear la dirección";
     throw new Error(message);
   }
   return data;

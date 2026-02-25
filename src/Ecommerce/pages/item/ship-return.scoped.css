@@ -1,0 +1,124 @@
+.pxShipReturn {
+  border-top: 1px solid #e7ecf3;
+  padding-top: 14px;
+}
+
+.pxShipReturn .pxShipReturn__section {
+  border-bottom: 1px solid #e7ecf3;
+}
+
+.pxShipReturn .pxShipReturn__header {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pxShipReturn .pxShipReturn__title {
+  color: #1f2a3d;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.pxShipReturn .pxShipReturn__icon {
+  color: #5d6b80;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.pxShipReturn .pxShipReturn__body {
+  padding: 0 0 14px;
+}
+
+.pxShipReturn .pxShipReturn__table {
+  display: grid;
+  gap: 0;
+}
+
+.pxShipReturn .pxShipReturn__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid #edf2f8;
+}
+
+.pxShipReturn .pxShipReturn__row span {
+  color: #3f4d63;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.pxShipReturn .pxShipReturn__row--head span {
+  color: #6f7b8f;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pxShipReturn .pxShipReturn__payments {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.pxShipReturn .pxShipReturn__paymentsLabel {
+  color: #6c7788;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pxShipReturn .pxShipReturn__logos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pxShipReturn .pxShipReturn__logoCard {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 40px;
+  border: 1px solid #e4eaf3;
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px 8px;
+}
+
+.pxShipReturn .pxShipReturn__logoCard img {
+  display: block;
+  width: 48px;
+  height: 30px;
+  object-fit: contain;
+}
+
+@media (max-width: 820px) {
+  .pxShipReturn .pxShipReturn__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px 0;
+  }
+
+  .pxShipReturn .pxShipReturn__row span {
+    font-size: 13px;
+  }
+
+  .pxShipReturn .pxShipReturn__payments {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

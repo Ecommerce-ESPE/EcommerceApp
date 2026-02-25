@@ -10,11 +10,15 @@ import {
   getShippingLocations,
   getAddressSummary,
   setPrimaryAddress,
+  deleteAddress,
+  updateAddress,
+  addAddress,
 } from "../../services/account";
 
 const EMPTY_FORM = {
   label: "",
   street: "",
+  nCasa: "",
   city: "",
   state: "",
   parish: "",
@@ -189,6 +193,19 @@ const AddressModal = ({
             </div>
             <div className="form-row">
               <div className="form-group col-md-6">
+                <label>N° Casa / Apto</label>
+                <input
+                  className="form-control"
+                  value={formData.nCasa}
+                  onChange={(event) => onChange("nCasa", event.target.value)}
+                  placeholder="Ej: 4B"
+                  disabled={saving}
+                  aria-label="Número de casa o departamento"
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group col-md-6">
                 <label>
                   Código postal <span className="text-danger">*</span>
                 </label>
@@ -250,6 +267,7 @@ const AddressesPage = () => {
   const [error, setError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteBlocked, setDeleteBlocked] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("add");
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -342,6 +360,7 @@ const AddressesPage = () => {
       id: address.id,
       label: address.label,
       street: address.street,
+      nCasa: address.nCasa || "",
       city: address.city,
       state: address.state,
       parish: address.parish || "",
@@ -377,42 +396,166 @@ const AddressesPage = () => {
     if (Object.keys(errors).length > 0) return;
 
     setSaving(true);
-    const shouldFail = Math.random() < 0.15;
-    setTimeout(() => {
-      if (shouldFail) {
+
+    if (modalMode === "edit") {
+      const index = addresses.findIndex((item) => item.id === formData.id);
+      if (index < 0) {
         setSaving(false);
-        notyf.error("No se pudo guardar la dirección.");
+        notyf.error("No se pudo identificar la dirección.");
         return;
       }
 
-      setAddresses((prev) => {
-        const isDefault = formData.isDefault;
-        if (modalMode === "edit") {
-          return prev.map((item) => {
-            if (item.id === formData.id) {
-              return { ...item, ...formData };
+      const payload = {
+        label: formData.label,
+        codigoPostal: formData.postalCode,
+        telefono: formData.phone,
+        isPrimary: Boolean(formData.isDefault),
+        provincia: formData.state,
+        canton: formData.city,
+        parroquia: formData.parish,
+        directionPrincipal: formData.street,
+        nCasa: formData.nCasa,
+      };
+
+      const snapshot = addresses;
+      const summarySnapshot = summary;
+      setAddresses((prev) =>
+        prev.map((item, idx) => {
+          if (item.id !== formData.id) {
+            if (formData.isDefault && idx !== index) {
+              return { ...item, isDefault: false };
             }
-            if (isDefault) return { ...item, isDefault: false };
             return item;
-          });
-        }
+          }
+          return {
+            ...item,
+            label: formData.label,
+            street: formData.street,
+            nCasa: formData.nCasa,
+            city: formData.city,
+            state: formData.state,
+            parish: formData.parish,
+            postalCode: formData.postalCode,
+            phone: formData.phone,
+            isDefault: Boolean(formData.isDefault),
+          };
+        })
+      );
+      if (formData.isDefault) {
+        setSummary((prev) =>
+          prev ? { ...prev, primary: { ...prev.primary, label: formData.label } } : prev
+        );
+      }
 
-        const newAddress = {
-          ...formData,
-          id: `ADDR-${Date.now()}`,
-        };
+      updateAddress(index, payload)
+        .then(() => {
+          setModalOpen(false);
+          notyf.success("Dirección actualizada correctamente.");
+        })
+        .catch((err) => {
+          setAddresses(snapshot);
+          setSummary(summarySnapshot);
+          notyf.error(err?.message || "No se pudo actualizar la dirección.");
+        })
+        .finally(() => {
+          setSaving(false);
+        });
+      return;
+    }
 
-        const next = isDefault ? prev.map((item) => ({ ...item, isDefault: false })) : prev;
-        return [newAddress, ...next];
-      });
-
+    const token =
+      localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (!token) {
       setSaving(false);
-      setModalOpen(false);
-      notyf.success("Dirección guardada correctamente.");
-    }, 900);
+      notyf.error("Debes iniciar sesión para guardar una dirección.");
+      return;
+    }
+
+    const payload = {
+      label: formData.label,
+      codigoPostal: formData.postalCode,
+      telefono: formData.phone,
+      isPrimary: Boolean(formData.isDefault),
+      provincia: formData.state,
+      canton: formData.city,
+      parroquia: formData.parish,
+      directionPrincipal: formData.street,
+      nCasa: formData.nCasa,
+    };
+
+    const snapshot = addresses;
+    const summarySnapshot = summary;
+    const tempId = `TEMP-${Date.now()}`;
+    const nextIndex = addresses.length;
+    setAddresses((prev) => {
+      const base = formData.isDefault
+        ? prev.map((item) => ({ ...item, isDefault: false }))
+        : prev;
+      return [
+        ...base,
+        {
+          id: tempId,
+          index: nextIndex,
+          label: formData.label,
+          street: formData.street,
+          nCasa: formData.nCasa,
+          city: formData.city,
+          state: formData.state,
+          parish: formData.parish,
+          postalCode: formData.postalCode,
+          phone: formData.phone,
+          isDefault: Boolean(formData.isDefault),
+        },
+      ];
+    });
+    setSummary((prev) => {
+      if (!prev) return prev;
+      const nextTotal = (prev.total || 0) + 1;
+      const nextPrimary = formData.isDefault
+        ? { ...prev.primary, label: formData.label }
+        : prev.primary;
+      return { ...prev, total: nextTotal, primary: nextPrimary };
+    });
+
+    addAddress(payload)
+      .then((result) => {
+        const created = result?.address;
+        if (created) {
+          setAddresses((prev) =>
+            prev.map((item) =>
+              item.id === tempId
+                ? {
+                    ...item,
+                    id: created.id || created._id || item.id,
+                    label: created.label ?? item.label,
+                    street: created.directionPrincipal ?? item.street,
+                    nCasa: created.nCasa ?? item.nCasa,
+                    city: created.canton ?? item.city,
+                    state: created.provincia ?? item.state,
+                    parish: created.parroquia ?? item.parish,
+                    postalCode: created.codepostal ?? item.postalCode,
+                    phone: created.telefono ?? item.phone,
+                    isDefault: Boolean(created.isPrimary ?? item.isDefault),
+                  }
+                : item
+            )
+          );
+        }
+        setModalOpen(false);
+        notyf.success("Dirección guardada correctamente.");
+      })
+      .catch((err) => {
+        setAddresses(snapshot);
+        setSummary(summarySnapshot);
+        notyf.error(err?.message || "No se pudo guardar la dirección.");
+      })
+      .finally(() => {
+        setSaving(false);
+      });
   };
 
   const handleDeleteClick = (address) => {
+    if (deleteLoading) return;
     if (address.isDefault) {
       setDeleteBlocked(true);
       setDeleteTarget(address);
@@ -422,9 +565,37 @@ const AddressesPage = () => {
     setDeleteTarget(address);
   };
 
-  const handleDelete = () => {
-    setAddresses((prev) => prev.filter((item) => item.id !== deleteTarget?.id));
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    if (!deleteTarget || deleteLoading) return;
+    const index =
+      Number.isFinite(deleteTarget.index)
+        ? deleteTarget.index
+        : addresses.findIndex((item) => item.id === deleteTarget.id);
+    if (index < 0) {
+      notyf.error("No se pudo identificar la dirección.");
+      return;
+    }
+
+    const snapshot = addresses;
+    const summarySnapshot = summary;
+    try {
+      setDeleteLoading(true);
+      setAddresses((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+      if (summary?.total != null) {
+        setSummary((prev) =>
+          prev ? { ...prev, total: Math.max(0, (prev.total || 0) - 1) } : prev
+        );
+      }
+      await deleteAddress(index);
+      notyf.success("Dirección eliminada");
+    } catch (err) {
+      setAddresses(snapshot);
+      setSummary(summarySnapshot);
+      notyf.error(err?.message || "No se pudo eliminar la dirección");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
+    }
   };
 
   const handleCloseDelete = () => {
@@ -577,6 +748,7 @@ const AddressesPage = () => {
                         className="btn btn-outline-danger btn-sm"
                         onClick={() => handleDeleteClick(address)}
                         aria-label="Eliminar dirección"
+                        disabled={deleteLoading}
                       >
                         Eliminar
                       </button>
@@ -597,6 +769,8 @@ const AddressesPage = () => {
         cancelText={deleteBlocked ? "Cerrar" : "Cancelar"}
         onConfirm={deleteBlocked ? handleCloseDelete : handleDelete}
         onCancel={handleCloseDelete}
+        loading={deleteLoading}
+        className="account-confirm-modal"
       />
 
       <AddressModal

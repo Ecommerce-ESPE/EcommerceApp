@@ -1,12 +1,9 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useMemo } from "react";
 import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
-import { useCatalog } from "./useCatalog";
+import useCatalog from "./useCatalog.jsx";
 import ProductCard from "./ProductCard";
-import PromoBannerTop from "./PromoBannerTop";
-import PromoBannerInline from "./PromoBannerInline";
-import CategoryMiniBanner from "./CategoryMiniBanner";
-import FiltersSidebar from "./FiltersSidebar";
+import FiltersSidebar from "./FiltersSidebar.jsx";
 import Toolbar from "./Toolbar";
 import { CartShop } from "../../components/carshop";
 import { Helmet } from "@dr.pogodin/react-helmet";
@@ -20,23 +17,22 @@ const CatalogComponent = () => {
 
   const {
     categories,
+    tagsCatalog,
     products,
-    filters,
+    Listo,
+    toolbarFilters,
+    filterError,
     handleCategory,
     handleSubcategory,
+    handleToggleTag,
     handleSortChange,
     handleLimitChange,
+    applyFilters,
+    clearFilters,
     loading,
-  } = useCatalog({
-    category: "",
-    subcategory: "",
-    sort: "price_asc",
-    page: 1,
-    limit: 12,
-  });
+  } = useCatalog();
 
   const [selectedSizes, setSelectedSizes] = useState({});
-  const [openCategory, setOpenCategory] = useState("category");
 
   // Mostrar filtro móvil si el usuario lo abre
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -76,6 +72,16 @@ const CatalogComponent = () => {
 
     notyf.success(`${product.nameProduct} (${size.size}) agregado al carrito`);
   };
+
+  const hasActiveFilters = useMemo(() => {
+    if (!Listo) return false;
+    return Boolean(
+      Listo.categoryId ||
+        Listo.subcategoryId ||
+        (Array.isArray(Listo.tags) && Listo.tags.length > 0) ||
+        Listo.spec
+    );
+  }, [Listo]);
 
   return (
     <>
@@ -129,7 +135,7 @@ const CatalogComponent = () => {
 
           <div className="col-lg-3 pr-lg-4">
             <Toolbar
-              filters={filters}
+              filters={toolbarFilters}
               onSortChange={handleSortChange}
               onLimitChange={handleLimitChange}
             />
@@ -141,11 +147,14 @@ const CatalogComponent = () => {
           {/* Sidebar desktop */}
           <FiltersSidebar
             categories={categories}
-            filters={filters}
+            tagsCatalog={tagsCatalog}
+            Listo={Listo}
+            filterError={filterError}
             handleCategory={handleCategory}
             handleSubcategory={handleSubcategory}
-            openCategory={openCategory}
-            setOpenCategory={setOpenCategory}
+            handleToggleTag={handleToggleTag}
+            applyFilters={applyFilters}
+            clearFilters={clearFilters}
             className="d-none d-lg-block"
           />
 
@@ -169,11 +178,14 @@ const CatalogComponent = () => {
                 </div>
                 <FiltersSidebar
                   categories={categories}
-                  filters={filters}
+                  tagsCatalog={tagsCatalog}
+                  Listo={Listo}
+                  filterError={filterError}
                   handleCategory={handleCategory}
                   handleSubcategory={handleSubcategory}
-                  openCategory={openCategory}
-                  setOpenCategory={setOpenCategory}
+                  handleToggleTag={handleToggleTag}
+                  applyFilters={applyFilters}
+                  clearFilters={clearFilters}
                 />
               </div>
               <div
@@ -186,17 +198,14 @@ const CatalogComponent = () => {
 
           {/* Main product grid */}
           <div className="col">
-            <PromoBannerInline />
-            <div className="category-mini-banner-list">
-              {categories.map((cat) => (
-                <CategoryMiniBanner
-                  key={cat._id}
-                  categoryName={cat.name}
-                  imageUrl={cat.images?.[0]?.imgUrl || cat.image || cat.banner || cat.icon}
-                  link="/catalogo"
-                />
-              ))}
-            </div>
+            {!hasActiveFilters && null}
+
+            {hasActiveFilters && (
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h2 className="h5 mb-0">Resultados encontrados</h2>
+                <span className="text-muted font-size-sm">{products.length} productos</span>
+              </div>
+            )}
             {loading ? (
               <div
                 className="d-flex justify-content-center align-items-center"

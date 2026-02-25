@@ -223,7 +223,9 @@ const total = Math.max(subtotalConDescuento + impuestosCalculados + costoEnvio, 
   // Seleccionar primera dirección al cargar userData
   useEffect(() => {
     if (userData?.address?.length > 0) {
-      setSelectedAddress(userData.address[0]);
+      const primary =
+        userData.address.find((addr) => addr?.isPrimary) || userData.address[0];
+      setSelectedAddress(primary);
     }
   }, [userData]);
 
