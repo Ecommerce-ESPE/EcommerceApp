@@ -1,9 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../services/api";
+import {
+  buildCatalogCrumbs,
+  resolveBrandByToken,
+  resolveCategoryByToken,
+  resolveSubcategoryByToken,
+} from "./catalogBreadcrumbs.js";
 
 const LISTO_INITIAL_STATE = {
   categoryId: null,
   subcategoryId: null,
+  brand: null,
   tags: [],
   spec: null,
 };
@@ -47,8 +55,173 @@ const validateSpec = (spec) => {
   return null;
 };
 
+const parseSpecFromParams = (params) => {
+  const specKey = params.get("specKey") || "";
+  const specType = params.get("specType") || "";
+  const specValue = params.get("specValue") || "";
+  const specGroup = params.get("specGroup") || "";
+  if (!specKey && !specType && !specValue && !specGroup) return null;
+  return {
+    key: specKey,
+    type: specType,
+    value: specValue,
+    group: specGroup,
+  };
+};
+
+const normalizeBrandValue = (brand) => {
+  if (!brand) return "";
+  if (typeof brand === "string") return brand.trim();
+  if (typeof brand === "object") {
+    return String(brand.slug || brand.name || brand.value || "").trim();
+  }
+  return "";
+};
+
+const sameSpec = (a, b) => {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    String(a.key || "") === String(b.key || "") &&
+    String(a.type || "") === String(b.type || "") &&
+    String(a.value || "") === String(b.value || "") &&
+    String(a.group || "") === String(b.group || "")
+  );
+};
+
+const sameListo = (a, b) => {
+  if (!a || !b) return false;
+  const aTags = Array.isArray(a.tags) ? a.tags : [];
+  const bTags = Array.isArray(b.tags) ? b.tags : [];
+  return (
+    String(a.categoryId || "") === String(b.categoryId || "") &&
+    String(a.subcategoryId || "") === String(b.subcategoryId || "") &&
+    String(a.brand || "") === String(b.brand || "") &&
+    aTags.length === bTags.length &&
+    aTags.every((tag, idx) => String(tag) === String(bTags[idx])) &&
+    sameSpec(a.spec, b.spec)
+  );
+};
+
+const resolveFromSearch = (search, categories, brandsCatalog) => {
+  const params = new URLSearchParams(search || "");
+
+  const categoryRaw = params.get("category") || "";
+  const subcategoryRaw = params.get("subcategory") || "";
+  const brandRaw = params.get("brand") || "";
+
+  const categoryMatch = resolveCategoryByToken(categories, categoryRaw);
+  const subcategoryMatch = resolveSubcategoryByToken(categories, subcategoryRaw, categoryMatch);
+  const brandMatch = resolveBrandByToken(brandsCatalog, brandRaw);
+
+  const tagsRaw = (params.get("tags") || "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  const sort = params.get("sort") || "price_asc";
+  const page = Math.max(Number(params.get("page") || 1), 1);
+  const limit = Math.max(Number(params.get("limit") || 12), 1);
+
+  const listo = {
+    categoryId: categoryMatch?._id || categoryRaw || null,
+    subcategoryId: subcategoryMatch?._id || subcategoryRaw || null,
+    brand: brandMatch?.slug || brandRaw || null,
+    tags: tagsRaw,
+    spec: parseSpecFromParams(params),
+  };
+
+  const context = {
+    category:
+      categoryMatch || categoryRaw
+        ? {
+            label: categoryMatch?.name || categoryRaw,
+            token: categoryMatch?.slug || categoryMatch?._id || categoryRaw,
+          }
+        : null,
+    subcategory:
+      subcategoryMatch || subcategoryRaw
+        ? {
+            label: subcategoryMatch?.name || subcategoryRaw,
+            token: subcategoryMatch?.slug || subcategoryMatch?._id || subcategoryRaw,
+          }
+        : null,
+    brand:
+      brandMatch || brandRaw
+        ? {
+            label: brandMatch?.name || brandRaw,
+            token: brandMatch?.slug || brandRaw,
+          }
+        : null,
+  };
+
+  return {
+    listo,
+    sort,
+    page,
+    limit,
+    context,
+  };
+};
+
+const tokenOrSlug = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const buildSearchFromState = ({ listo, sort, page, limit, categories }) => {
+  const params = new URLSearchParams();
+
+  const categoryMatch = categories.find((cat) => cat?._id === listo?.categoryId);
+  const categoryToken =
+    categoryMatch?.slug ||
+    tokenOrSlug(categoryMatch?.name) ||
+    listo?.categoryId;
+  if (categoryToken) params.append("category", categoryToken);
+
+  let subcategoryToken = "";
+  if (listo?.subcategoryId) {
+    const subPool = categoryMatch?.subcategories?.length
+      ? categoryMatch.subcategories
+      : categories.flatMap((cat) => cat?.subcategories || []);
+    const subMatch = subPool.find((sub) => sub?._id === listo.subcategoryId);
+    subcategoryToken =
+      subMatch?.slug ||
+      tokenOrSlug(subMatch?.name) ||
+      listo.subcategoryId;
+  }
+  if (subcategoryToken) params.append("subcategory", subcategoryToken);
+
+  if (listo?.brand) params.append("brand", listo.brand);
+  if (Array.isArray(listo?.tags) && listo.tags.length > 0) {
+    params.append("tags", listo.tags.join(","));
+  }
+
+  if (listo?.spec) {
+    const { key, type, value, group } = listo.spec;
+    if (key) params.append("specKey", String(key).trim());
+    if (type) params.append("specType", String(type).trim());
+    if (value) params.append("specValue", String(value).trim());
+    if (group) params.append("specGroup", String(group).trim());
+  }
+
+  params.append("sort", sort || "price_asc");
+  params.append("page", String(page || 1));
+  params.append("limit", String(limit || 12));
+
+  return params.toString();
+};
+
 export const useCatalog = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [categories, setCategories] = useState([]);
+  const [brandsCatalog, setBrandsCatalog] = useState([]);
   const [tagsCatalog, setTagsCatalog] = useState([]);
   const [products, setProducts] = useState([]);
   const [Listo, setListo] = useState(LISTO_INITIAL_STATE);
@@ -57,6 +230,12 @@ export const useCatalog = () => {
   const [limit, setLimit] = useState(12);
   const [loading, setLoading] = useState(false);
   const [filterError, setFilterError] = useState("");
+  const [queryHydrated, setQueryHydrated] = useState(false);
+  const [breadcrumbContext, setBreadcrumbContext] = useState({
+    category: null,
+    subcategory: null,
+    brand: null,
+  });
 
   const toolbarFilters = useMemo(
     () => ({
@@ -65,6 +244,11 @@ export const useCatalog = () => {
       limit,
     }),
     [sort, page, limit]
+  );
+
+  const catalogCrumbs = useMemo(
+    () => buildCatalogCrumbs(breadcrumbContext),
+    [breadcrumbContext]
   );
 
   const fetchCategories = useCallback(async () => {
@@ -90,90 +274,148 @@ export const useCatalog = () => {
     }
   }, []);
 
-  const fetchProducts = useCallback(
-    async ({
-      listo = Listo,
-      nextSort = sort,
-      nextPage = page,
-      nextLimit = limit,
-      showSpecValidation = false,
-    } = {}) => {
-      const specError = validateSpec(listo.spec);
-      if (specError) {
-        if (showSpecValidation) setFilterError(specError);
-        return false;
+  const fetchBrands = useCallback(async () => {
+    const toBrandOption = (raw) => {
+      if (!raw) return null;
+      if (typeof raw === "string") {
+        const normalized = raw.trim();
+        if (!normalized) return null;
+        return { slug: normalized, name: normalized };
       }
 
-      setFilterError("");
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
+      const slug = String(raw.slug || raw.code || raw.name || "").trim();
+      const name = String(raw.name || raw.label || raw.slug || "").trim();
+      if (!slug && !name) return null;
+      return {
+        slug: slug || name,
+        name: name || slug,
+      };
+    };
 
-        if (listo.categoryId) params.append("category", listo.categoryId);
-        if (listo.subcategoryId) params.append("subcategory", listo.subcategoryId);
-        if (Array.isArray(listo.tags) && listo.tags.length > 0) {
-          params.append("tags", listo.tags.join(","));
-        }
-
-        if (listo.spec) {
-          const { key, type, value, group } = listo.spec;
-          params.append("specKey", String(key).trim());
-          params.append("specType", String(type).trim());
-          params.append("specValue", String(value).trim());
-          if (group && String(group).trim()) {
-            params.append("specGroup", String(group).trim());
-          }
-        }
-
-        params.append("sort", nextSort);
-        params.append("page", String(nextPage));
-        params.append("limit", String(nextLimit));
-
-        const response = await fetch(`${API_BASE}/items/filter?${params.toString()}`);
+    try {
+      const response = await fetch(`${API_BASE}/brands`);
+      if (response.ok) {
         const data = await response.json();
+        const rawBrands = Array.isArray(data)
+          ? data
+          : data?.items || data?.brands || data?.data || [];
+        const parsed = rawBrands
+          .map(toBrandOption)
+          .filter(Boolean)
+          .reduce((acc, entry) => {
+            if (!acc.some((it) => it.slug.toLowerCase() === entry.slug.toLowerCase())) {
+              acc.push(entry);
+            }
+            return acc;
+          }, [])
+          .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+        setBrandsCatalog(parsed);
+        return;
+      }
+    } catch {
+      // fallback below
+    }
 
-        if (!response.ok) {
-          if (response.status === 400) {
-            setFilterError("Especificacion invalida.");
+    try {
+      const response = await fetch(`${API_BASE}/items/filter?page=1&limit=100`);
+      const data = await response.json();
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const parsed = items
+        .map((item) => normalizeBrandValue(item?.brand))
+        .filter(Boolean)
+        .reduce((acc, value) => {
+          if (!acc.some((it) => it.slug.toLowerCase() === value.toLowerCase())) {
+            acc.push({ slug: value, name: value });
           }
-          setProducts([]);
-          return false;
-        }
+          return acc;
+        }, [])
+        .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+      setBrandsCatalog(parsed);
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      setBrandsCatalog([]);
+    }
+  }, []);
 
-        setProducts(data.items || []);
-        return true;
-      } catch (error) {
-        console.error("Error fetching products:", error);
+  const fetchProducts = useCallback(async ({ listo, nextSort, nextPage, nextLimit }) => {
+    const specError = validateSpec(listo?.spec);
+    if (specError) {
+      setFilterError(specError);
+      return false;
+    }
+
+    setFilterError("");
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+
+      if (listo?.categoryId) params.append("category", listo.categoryId);
+      if (listo?.subcategoryId) params.append("subcategory", listo.subcategoryId);
+      if (listo?.brand) params.append("brand", listo.brand);
+      if (Array.isArray(listo?.tags) && listo.tags.length > 0) {
+        params.append("tags", listo.tags.join(","));
+      }
+
+      if (listo?.spec) {
+        const { key, type, value, group } = listo.spec;
+        params.append("specKey", String(key).trim());
+        params.append("specType", String(type).trim());
+        params.append("specValue", String(value).trim());
+        if (group && String(group).trim()) {
+          params.append("specGroup", String(group).trim());
+        }
+      }
+
+      params.append("sort", nextSort || "price_asc");
+      params.append("page", String(nextPage || 1));
+      params.append("limit", String(nextLimit || 12));
+
+      const response = await fetch(`${API_BASE}/items/filter?${params.toString()}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          setFilterError("Especificacion invalida.");
+        }
         setProducts([]);
         return false;
-      } finally {
-        setLoading(false);
       }
-    },
-    [Listo, sort, page, limit]
-  );
+
+      setProducts(data.items || []);
+      return true;
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setProducts([]);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchCategories();
+    fetchBrands();
     fetchTags();
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchCategories, fetchTags]);
+  }, [fetchCategories, fetchBrands, fetchTags]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      fetchProducts({
-        listo: Listo,
-        nextSort: sort,
-        nextPage: 1,
-        nextLimit: limit,
-        showSpecValidation: true,
-      });
-    }, 200);
+    const parsed = resolveFromSearch(location.search, categories, brandsCatalog);
 
-    return () => clearTimeout(timer);
-  }, [Listo, sort, limit, fetchProducts]);
+    setBreadcrumbContext(parsed.context);
+
+    setListo((prev) => (sameListo(prev, parsed.listo) ? prev : parsed.listo));
+    setSort((prev) => (prev === parsed.sort ? prev : parsed.sort));
+    setPage((prev) => (prev === parsed.page ? prev : parsed.page));
+    setLimit((prev) => (prev === parsed.limit ? prev : parsed.limit));
+
+    fetchProducts({
+      listo: parsed.listo,
+      nextSort: parsed.sort,
+      nextPage: parsed.page,
+      nextLimit: parsed.limit,
+    });
+    setQueryHydrated(true);
+  }, [location.search, categories, brandsCatalog, fetchProducts]);
 
   const handleCategory = useCallback((catId) => {
     setListo((prev) => ({
@@ -181,6 +423,7 @@ export const useCatalog = () => {
       categoryId: prev.categoryId === catId ? null : catId,
       subcategoryId: null,
     }));
+    setPage(1);
   }, []);
 
   const handleSubcategory = useCallback((subId) => {
@@ -188,6 +431,15 @@ export const useCatalog = () => {
       ...prev,
       subcategoryId: prev.subcategoryId === subId ? null : subId,
     }));
+    setPage(1);
+  }, []);
+
+  const handleBrand = useCallback((brandSlug) => {
+    setListo((prev) => ({
+      ...prev,
+      brand: prev.brand === brandSlug ? null : brandSlug,
+    }));
+    setPage(1);
   }, []);
 
   const handleToggleTag = useCallback((tagSlug) => {
@@ -201,6 +453,7 @@ export const useCatalog = () => {
         tags: nextTags,
       };
     });
+    setPage(1);
   }, []);
 
   const handleUpdateSpec = useCallback((field, value) => {
@@ -216,70 +469,63 @@ export const useCatalog = () => {
         spec: hasAny ? nextSpec : null,
       };
     });
+    setPage(1);
   }, []);
 
   const handleSortChange = useCallback(
-    async (value) => {
+    (value) => {
       setSort(value);
       setPage(1);
-      await fetchProducts({
-        listo: Listo,
-        nextSort: value,
-        nextPage: 1,
-        nextLimit: limit,
-      });
     },
-    [Listo, limit, fetchProducts]
+    []
   );
 
   const handleLimitChange = useCallback(
-    async (value) => {
+    (value) => {
       const nextLimit = Number(value);
       setLimit(nextLimit);
       setPage(1);
-      await fetchProducts({
-        listo: Listo,
-        nextSort: sort,
-        nextPage: 1,
-        nextLimit,
-      });
     },
-    [Listo, sort, fetchProducts]
+    []
   );
 
-  const applyFilters = useCallback(async () => {
-    setPage(1);
-    await fetchProducts({
+  // Sincroniza filtros -> URL. La URL es fuente de verdad para fetch y estado.
+  useEffect(() => {
+    if (!queryHydrated) return;
+    const nextSearch = buildSearchFromState({
       listo: Listo,
-      nextSort: sort,
-      nextPage: 1,
-      nextLimit: limit,
-      showSpecValidation: true,
+      sort,
+      page,
+      limit,
+      categories,
     });
-  }, [Listo, sort, limit, fetchProducts]);
+    const currentSearch = new URLSearchParams(location.search || "").toString();
+    if (nextSearch !== currentSearch) {
+      navigate(`/shop?${nextSearch}`);
+    }
+  }, [queryHydrated, Listo, sort, page, limit, categories, location.search, navigate]);
 
-  const clearFilters = useCallback(async () => {
-    setListo(LISTO_INITIAL_STATE);
+  const applyFilters = useCallback(() => {}, []);
+
+  const clearFilters = useCallback(() => {
     setFilterError("");
+    setListo(LISTO_INITIAL_STATE);
     setPage(1);
-    await fetchProducts({
-      listo: LISTO_INITIAL_STATE,
-      nextSort: sort,
-      nextPage: 1,
-      nextLimit: limit,
-    });
-  }, [sort, limit, fetchProducts]);
+  }, []);
 
   return {
     categories,
+    brandsCatalog,
     tagsCatalog,
     products,
     Listo,
     toolbarFilters,
     loading,
     filterError,
+    catalogCrumbs,
     handleCategory,
     handleSubcategory,
+    handleBrand,
     handleToggleTag,
     handleUpdateSpec,
     handleSortChange,

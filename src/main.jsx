@@ -5,17 +5,20 @@ import { HelmetProvider } from '@dr.pogodin/react-helmet';
 import { CartProvider } from './Ecommerce/context/cartContext';
 import { AuthProvider } from './auth/authContext';
 import { EcommerceApp } from './EcommerceApp';
+import { StoreSettingsProvider } from './Ecommerce/context/storeSettingsContext';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <HelmetProvider>
-      <AuthProvider>
-        <CartProvider>
-          <BrowserRouter>
-            <EcommerceApp />
-          </BrowserRouter>
-        </CartProvider>
-      </AuthProvider>
+      <StoreSettingsProvider>
+        <AuthProvider>
+          <CartProvider>
+            <BrowserRouter>
+              <EcommerceApp />
+            </BrowserRouter>
+          </CartProvider>
+        </AuthProvider>
+      </StoreSettingsProvider>
     </HelmetProvider>
   </StrictMode>
 );

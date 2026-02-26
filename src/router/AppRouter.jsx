@@ -59,6 +59,7 @@ export const AppRouter = () => {
         <Route path="home" element={<HomeComponent />} />
         <Route path="shop/:section/:slug" element={<PromoResolvePage />} />
         <Route path="shop" element={<CatalogComponent />} />
+        <Route path="catalog" element={<CatalogComponent />} />
         <Route path="catalogo" element={<CatalogoComponent />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="producto/:id" element={<ProductoDetalle />} />

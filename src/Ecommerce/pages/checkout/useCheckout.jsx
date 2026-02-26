@@ -8,6 +8,39 @@ import {
   buildTransactionData,
 } from "../../services/checkoutService";
 import { setPrimaryAddress } from "../../services/account";
+import { useStoreSettings } from "../../context/storeSettingsContext";
+
+const CHECKOUT_DRAFT_KEY = "checkout_draft_v1";
+
+const readCheckoutDraft = () => {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_DRAFT_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const persistCheckoutDraft = (draft) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // noop
+  }
+};
+
+const clearCheckoutDraft = () => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+  } catch {
+    // noop
+  }
+};
 
 export const API_BASE =
   process.env.NODE_ENV === "production"
@@ -17,9 +50,18 @@ export const API_BASE =
 export const useCheckout = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } =
     useContext(CartContext);
+  const { settings } = useStoreSettings();
+  const [checkoutDraft] = useState(() => readCheckoutDraft());
+
+  const getValidStep = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 1;
+    return Math.min(Math.max(Math.trunc(parsed), 1), 4);
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => getValidStep(checkoutDraft.step));
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [newAddress, setNewAddress] = useState({
     directionPrincipal: "",
@@ -28,7 +70,7 @@ export const useCheckout = () => {
     telefono: "",
   });
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [discountCode, setDiscountCode] = useState("");
+  const [discountCode, setDiscountCode] = useState(() => checkoutDraft.discountCode || "");
   const [discountApplied, setDiscountApplied] = useState(null);
   const [discountError, setDiscountError] = useState("");
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
@@ -59,10 +101,19 @@ export const useCheckout = () => {
   });
 
   const [locations, setLocations] = useState({});
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedCanton, setSelectedCanton] = useState("");
-  const [selectedParish, setSelectedParish] = useState("");
-  const [selectedAddressIndex, setSelectedAddressIndex] = useState(null);
+  const [selectedProvince, setSelectedProvince] = useState(
+    () => checkoutDraft.selectedProvince || ""
+  );
+  const [selectedCanton, setSelectedCanton] = useState(
+    () => checkoutDraft.selectedCanton || ""
+  );
+  const [selectedParish, setSelectedParish] = useState(
+    () => checkoutDraft.selectedParish || ""
+  );
+  const [selectedAddressIndex, setSelectedAddressIndex] = useState(() => {
+    const parsed = Number(checkoutDraft.selectedAddressIndex);
+    return Number.isFinite(parsed) ? parsed : null;
+  });
 
   const originalSubtotal = cart.reduce(
     (total, producto) => total + producto.price * producto.quantity,
@@ -76,11 +127,38 @@ export const useCheckout = () => {
     ? parseFloat(discountApplied.amount)
     : 0;
 
-  const subtotal = originalSubtotal - discountAmount;
-  const impuestos = 0.12;
-  const impuestosCalculados = Math.round(subtotal  * impuestos * 100) / 100;
+  const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+  const normalizeRate = (value) => {
+    const num = Number(value || 0);
+    if (!Number.isFinite(num) || num <= 0) return 0;
+    if (num > 1 && num <= 100) return num / 100;
+    return num;
+  };
+
+  const subtotal = Math.max(originalSubtotal - discountAmount, 0);
+  const taxSettings = settings?.tax || {};
+  const ivaEnabled = Boolean(taxSettings?.iva?.enabled);
+  const ivaRate = ivaEnabled ? normalizeRate(taxSettings?.iva?.defaultRate) : 0;
+  const priceIncludesTax = Boolean(taxSettings?.priceIncludesTax);
+
+  const subtotalSinIva =
+    ivaEnabled && ivaRate > 0 && priceIncludesTax
+      ? roundMoney(subtotal / (1 + ivaRate))
+      : roundMoney(subtotal);
+
+  const impuestosCalculados =
+    ivaEnabled && ivaRate > 0
+      ? priceIncludesTax
+        ? roundMoney(subtotal - subtotalSinIva)
+        : roundMoney(subtotalSinIva * ivaRate)
+      : 0;
+
   const costoEnvio = selectedShipping ? selectedShipping.costo : 0;
-  const total = subtotal + costoEnvio + impuestosCalculados;
+  const total = roundMoney(
+    priceIncludesTax
+      ? subtotal + costoEnvio
+      : subtotal + costoEnvio + impuestosCalculados
+  );
 
   // CARGAR DATOS DEL USUARIO Y DIRECCIONES AL INICIAR
   useEffect(() => {
@@ -107,11 +185,17 @@ export const useCheckout = () => {
             .filter(({ addr }) => addr && (addr.directionPrincipal || addr.address));
 
           if (validAddresses.length > 0) {
+            const restoredAddressIndex = Number(checkoutDraft.selectedAddressIndex);
+            const restored =
+              Number.isFinite(restoredAddressIndex)
+                ? validAddresses.find(({ index }) => index === restoredAddressIndex)
+                : null;
             const primary =
               validAddresses.find(({ addr }) => addr?.isPrimary) ||
               validAddresses[0];
-            setSelectedAddress(primary.addr);
-            setSelectedAddressIndex(primary.index);
+            const target = restored || primary;
+            setSelectedAddress(target.addr);
+            setSelectedAddressIndex(target.index);
           }
         }
       } catch (error) {
@@ -131,29 +215,54 @@ export const useCheckout = () => {
 
     if (token) fetchUserData();
     fetchLocations();
-  }, []);
+  }, [checkoutDraft.selectedAddressIndex]);
 
-  // CARGAR MÉTODOS DE ENVÍO CUANDO CAMBIA LA DIRECCIÓN SELECCIONADA
+  // CARGAR METODOS DE ENVIO CUANDO CAMBIA LA DIRECCION SELECCIONADA
   useEffect(() => {
+    const normalizeProvince = (value) =>
+      String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toUpperCase();
+
+    const extractMethodsArray = (payload) => {
+      if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.data)) return payload.data;
+      if (Array.isArray(payload?.items)) return payload.items;
+      if (Array.isArray(payload?.docs)) return payload.docs;
+      if (Array.isArray(payload?.results)) return payload.results;
+      if (Array.isArray(payload?.shippingMethods)) return payload.shippingMethods;
+      return [];
+    };
+
+    const selectedProvinceName = normalizeProvince(
+      selectedAddress?.provincia ||
+        selectedAddress?.province ||
+        selectedAddress?.state ||
+        selectedProvince
+    );
+
+    const isAvailableForProvince = (method) => {
+      const allowed = Array.isArray(method?.provinciasPermitidas)
+        ? method.provinciasPermitidas.map(normalizeProvince).filter(Boolean)
+        : [];
+      const restricted = Array.isArray(method?.provinciasRestringidas)
+        ? method.provinciasRestringidas.map(normalizeProvince).filter(Boolean)
+        : [];
+
+      if (!selectedProvinceName) return true;
+      if (allowed.length > 0 && !allowed.includes(selectedProvinceName)) return false;
+      if (restricted.includes(selectedProvinceName)) return false;
+      return true;
+    };
+
     const fetchShippingMethods = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token || !userData?.uid || !selectedAddress) return;
-
-        const direccionIndex = selectedAddressIndex;
-
-        if (direccionIndex === -1) {
-          console.log("Dirección no encontrada en el perfil del usuario");
-          return;
-        }
-
-        const res = await fetch(
-          `${API_BASE}/config/shipping-methods/available?direccionIndex=${direccionIndex}`,
-          { headers: { "x-token": token } }
-        );
+        const res = await fetch(`${API_BASE}/config/shipping-methods?page=1&limit=5`);
 
         if (!res.ok) {
-          throw new Error("No se pudo cargar los métodos de envío");
+          throw new Error("No se pudo cargar los metodos de envio");
         }
 
         const contentType = res.headers.get("content-type");
@@ -161,41 +270,79 @@ export const useCheckout = () => {
           throw new Error("Respuesta inesperada del servidor (no es JSON)");
         }
 
-        const data = await res.json();
+        const payload = await res.json();
+        const methods = extractMethodsArray(payload)
+          .filter((m) => m && m.visible !== false)
+          .filter(isAvailableForProvince)
+          .sort((a, b) => {
+            if (Boolean(a?.isFeatured) !== Boolean(b?.isFeatured)) {
+              return a?.isFeatured ? -1 : 1;
+            }
+            const ap = Number.isFinite(Number(a?.priority)) ? Number(a.priority) : -9999;
+            const bp = Number.isFinite(Number(b?.priority)) ? Number(b.priority) : -9999;
+            if (ap !== bp) return bp - ap;
+            return 0;
+          });
 
-        // ✅ MOSTRAR EN CONSOLA LOS MÉTODOS DE ENVÍO CARGADOS
-        //console.log("📦 Métodos de envío disponibles:", data);
-
-        const opciones = data.map((m, index) => ({
+        const opciones = methods.map((m, index) => ({
           id: m._id,
-          name: m.descripcion || m.tipoEnvio || `Método ${index + 1}`,
-          costo: m.costo,
-          tiempo: m.tiempo || "2-4 días",
+          name: m.tipoEnvio || m.descripcion || `Metodo ${index + 1}`,
+          costo: Number(m.costo) || 0,
+          tiempo: m.tiempoEstimado || m.tiempo || "2-4 dias",
+          priority: Number.isFinite(Number(m.priority)) ? Number(m.priority) : 9999,
+          isFeatured: Boolean(m.isFeatured),
+          empresa: m.empresa || "",
+          descripcion: m.descripcion || "",
         }));
 
         setEnvio(opciones);
 
-        // Seleccionar automáticamente la primera opción
         if (opciones.length > 0) {
-          const yaExiste = opciones.find(
-            (opt) => opt.id === selectedShipping?.id
-          );
-          setSelectedShipping(yaExiste || opciones[0]);
+          setSelectedShipping((prev) => {
+            const preferredShippingId = prev?.id || checkoutDraft.selectedShippingId;
+            const yaExiste = opciones.find((opt) => opt.id === preferredShippingId);
+            return yaExiste || opciones[0];
+          });
         } else {
           setSelectedShipping(null);
         }
       } catch (err) {
-        console.error("❌ Error cargando métodos de envío:", err);
+        console.error("Error cargando metodos de envio:", err);
         setEnvio([]);
         setSelectedShipping(null);
       }
     };
 
-    if (userData && selectedAddress) {
-      //console.log("📍 Dirección cambiada. Cargando métodos de envío...");
+    if (selectedAddress || selectedProvince) {
       fetchShippingMethods();
     }
-  }, [userData, selectedAddress, selectedAddressIndex, selectedShipping?.id]);
+  }, [selectedAddress, selectedProvince, checkoutDraft.selectedShippingId]);
+
+  useEffect(() => {
+    persistCheckoutDraft({
+      step: getValidStep(step),
+      selectedAddressIndex,
+      selectedProvince,
+      selectedCanton,
+      selectedParish,
+      selectedShippingId: selectedShipping?.id || null,
+      discountCode,
+    });
+  }, [
+    step,
+    selectedAddressIndex,
+    selectedProvince,
+    selectedCanton,
+    selectedParish,
+    selectedShipping?.id,
+    discountCode,
+  ]);
+
+  useEffect(() => {
+    if (orderStatus === "success") {
+      clearCheckoutDraft();
+    }
+  }, [orderStatus]);
 
   const saveNewAddress = async () => {
     try {
@@ -469,7 +616,11 @@ export const useCheckout = () => {
     // 📊 Totales y cálculos
     originalSubtotal,
     subtotal,
+    subtotalSinIva,
     impuestosCalculados,
+    ivaRate,
+    ivaEnabled,
+    priceIncludesTax,
     total,
 
 

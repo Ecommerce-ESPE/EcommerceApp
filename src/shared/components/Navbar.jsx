@@ -7,6 +7,7 @@ import logo from "../../assets/img/ecommerce/logo.svg";
 import avatar from "../../assets/img/ecommerce/home/categories/03.jpg";
 import { notyf } from "../../utils/notifications";
 import { Link } from "react-router-dom";
+import { useStoreSettings } from "../../Ecommerce/context/storeSettingsContext";
 
 const initialMenuData = {
   mainMenu: [
@@ -102,6 +103,11 @@ export const NavbarComponent = () => {
   const { cart, setShowCart } = useContext(CartContext);
   const navigate = useNavigate();
   const { user, logout, wallet } = useAuth();
+  const { settings } = useStoreSettings();
+  const business = settings?.business || {};
+  const branding = settings?.branding || {};
+  const storeName = business.name || "Createx Shop";
+  const storeLogo = branding.logoUrl || logo;
   const walletAmount =
     wallet?.balance ??
     wallet?.amount ??
@@ -109,6 +115,12 @@ export const NavbarComponent = () => {
     user?.wallet ??
     user?.credits ??
     0;
+  const walletLabel = new Intl.NumberFormat(business.locale || "es-EC", {
+    style: "currency",
+    currency: business.currency || "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(walletAmount || 0));
   // Logout handler
   const handleLogout = () => {
     logout();
@@ -128,7 +140,7 @@ export const NavbarComponent = () => {
               href="/"
               className="navbar-brand order-lg-1 mr-0 pr-lg-3 mr-lg-4"
             >
-              <img src={logo} alt="Createx Logo" width="130" />
+              <img src={storeLogo} alt={storeName} width="130" />
             </a>
 
             {/* Buscador Desktop */}
@@ -216,7 +228,7 @@ export const NavbarComponent = () => {
                               {user.email || ""}
                             </p>
                             <p className="mb-2 text-muted small font-weight-bold">
-                               $ {Number(walletAmount || 0).toFixed(2)} Dolares
+                              {walletLabel}
                             </p>
                           </div>
                         </div>

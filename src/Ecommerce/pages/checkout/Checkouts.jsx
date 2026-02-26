@@ -105,7 +105,7 @@ export const Checkout = () => {
               setSelectedAddressIndex={setSelectedAddressIndex}
             />
           )}
-          {step === 3 && envio.length > 0 && (
+          {step === 3 && (
             <StepShipping
               shippingOptions={envio}
               selectedShipping={selectedShipping}

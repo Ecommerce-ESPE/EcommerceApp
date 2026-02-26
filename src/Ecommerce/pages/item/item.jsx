@@ -2,10 +2,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { useMemo } from "react";
 
 import ProductGallery from "./ProductGallery";
 import ProductInfo from "./ProductInfo";
 import ProductDetails from "./ProductDetails";
+import CatalogBreadcrumbs from "../catalogo/CatalogBreadcrumbs.jsx";
+import { buildProductCrumbs } from "../catalogo/catalogBreadcrumbs";
 
 import { API_BASE } from "../../services/api";
 import SEOProduct from "../../seo/SEOProduct";
@@ -14,6 +17,10 @@ const ProductPage = ({ addToCart }) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const crumbs = useMemo(
+    () => buildProductCrumbs(selectedProduct),
+    [selectedProduct]
+  );
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -75,38 +82,7 @@ const ProductPage = ({ addToCart }) => {
         }}
       />
 
-      <nav className="bg-secondary mb-3" aria-label="breadcrumb">
-        <div className="container">
-          <ol className="breadcrumb breadcrumb-alt mb-0">
-            <li className="breadcrumb-item">
-              <a href="/">
-                <i className="ci-home"></i>
-              </a>
-            </li>
-            <li className="breadcrumb-item">
-              <a href="/shop">
-                {selectedProduct.category?.name || "Categoria"}
-              </a>
-            </li>
-            <li className="breadcrumb-item">
-              <a href="/shop">
-                {selectedProduct.subcategory?.name || "Subcategoria"}
-              </a>
-            </li>
-            <li className="breadcrumb-item">
-              <a href="/shop">
-                {selectedProduct.brand?.name ||
-                  (typeof selectedProduct.brand === "string"
-                    ? selectedProduct.brand
-                    : "Marca")}
-              </a>
-            </li>
-            <li className="breadcrumb-item active" aria-current="page">
-              {selectedProduct.nameProduct}
-            </li>
-          </ol>
-        </div>
-      </nav>
+      <CatalogBreadcrumbs crumbs={crumbs} />
 
       {/* Título de página */}
       <section className="container d-md-flex align-items-center justify-content-between py-3 py-md-4 mb-3">

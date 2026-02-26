@@ -3,10 +3,11 @@ import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
 import useCatalog from "./useCatalog.jsx";
 import ProductCard from "./ProductCard";
-import FiltersSidebar from "./FiltersSidebar.jsx";
+import { FiltersSidebar } from "./FiltersSidebar.jsx";
 import Toolbar from "./Toolbar";
 import { CartShop } from "../../components/carshop";
 import { Helmet } from "@dr.pogodin/react-helmet";
+import CatalogBreadcrumbs from "./CatalogBreadcrumbs.jsx";
 
 const CatalogComponent = () => {
   const {
@@ -17,13 +18,16 @@ const CatalogComponent = () => {
 
   const {
     categories,
+    brandsCatalog,
     tagsCatalog,
     products,
     Listo,
     toolbarFilters,
     filterError,
+    catalogCrumbs,
     handleCategory,
     handleSubcategory,
+    handleBrand,
     handleToggleTag,
     handleSortChange,
     handleLimitChange,
@@ -78,6 +82,7 @@ const CatalogComponent = () => {
     return Boolean(
       Listo.categoryId ||
         Listo.subcategoryId ||
+        Listo.brand ||
         (Array.isArray(Listo.tags) && Listo.tags.length > 0) ||
         Listo.spec
     );
@@ -94,6 +99,7 @@ const CatalogComponent = () => {
         
       </Helmet>
       <section className="container pt-3 pb-5 mb-2 mb-lg-0">
+        <CatalogBreadcrumbs crumbs={catalogCrumbs} />
         {/* Mobile Cart Button */}
         <div
           className="d-lg-none position-fixed"
@@ -147,11 +153,13 @@ const CatalogComponent = () => {
           {/* Sidebar desktop */}
           <FiltersSidebar
             categories={categories}
+            brandsCatalog={brandsCatalog}
             tagsCatalog={tagsCatalog}
             Listo={Listo}
             filterError={filterError}
             handleCategory={handleCategory}
             handleSubcategory={handleSubcategory}
+            handleBrand={handleBrand}
             handleToggleTag={handleToggleTag}
             applyFilters={applyFilters}
             clearFilters={clearFilters}
@@ -178,11 +186,13 @@ const CatalogComponent = () => {
                 </div>
                 <FiltersSidebar
                   categories={categories}
+                  brandsCatalog={brandsCatalog}
                   tagsCatalog={tagsCatalog}
                   Listo={Listo}
                   filterError={filterError}
                   handleCategory={handleCategory}
                   handleSubcategory={handleSubcategory}
+                  handleBrand={handleBrand}
                   handleToggleTag={handleToggleTag}
                   applyFilters={applyFilters}
                   clearFilters={clearFilters}

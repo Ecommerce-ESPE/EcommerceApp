@@ -6,16 +6,19 @@ import "./filters-panel.scoped.css";
 const FiltersSidebar = ({
   className = "",
   categories,
+  brandsCatalog,
   tagsCatalog,
   Listo,
   filterError,
   handleCategory,
   handleSubcategory,
+  handleBrand,
   handleToggleTag,
   applyFilters,
   clearFilters,
 }) => {
   const [categorySearch, setCategorySearch] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
   const [tagSearch, setTagSearch] = useState("");
 
   const selectedCategory = useMemo(
@@ -34,6 +37,16 @@ const FiltersSidebar = ({
     return categories.filter((cat) => cat.name?.toLowerCase().includes(query));
   }, [categories, categorySearch]);
 
+  const filteredBrands = useMemo(() => {
+    const query = brandSearch.trim().toLowerCase();
+    if (!query) return brandsCatalog;
+    return brandsCatalog.filter(
+      (brand) =>
+        brand.name?.toLowerCase().includes(query) ||
+        brand.slug?.toLowerCase().includes(query)
+    );
+  }, [brandsCatalog, brandSearch]);
+
   const filteredTags = useMemo(() => {
     const query = tagSearch.trim().toLowerCase();
     if (!query) return tagsCatalog;
@@ -43,6 +56,11 @@ const FiltersSidebar = ({
         tag.slug?.toLowerCase().includes(query)
     );
   }, [tagsCatalog, tagSearch]);
+
+  const selectedBrand = useMemo(() => {
+    if (!Listo.brand) return null;
+    return brandsCatalog.find((brand) => brand.slug === Listo.brand) || null;
+  }, [brandsCatalog, Listo.brand]);
 
   const activeTagNames = useMemo(() => {
     const lookup = new Map(tagsCatalog.map((tag) => [tag.slug, tag.name || tag.slug]));
@@ -110,6 +128,40 @@ const FiltersSidebar = ({
 
         <div className="filterPanel__section">
           <div className="filterPanel__titleRow">
+            <h6 className="filterPanel__title">Marcas</h6>
+            <span className="filterPanel__counter">{filteredBrands.length}</span>
+          </div>
+
+          <input
+            type="text"
+            className="filterPanel__search"
+            placeholder="Buscar marcas"
+            value={brandSearch}
+            onChange={(e) => setBrandSearch(e.target.value)}
+          />
+
+          <SimpleBar style={{ maxHeight: 180 }}>
+            <ul className="filterPanel__list" role="list">
+              {filteredBrands.map((brand) => (
+                <li key={brand.slug} className="filterPanel__item">
+                  <label className="filterPanel__checkRow" htmlFor={`brand-${brand.slug}`}>
+                    <input
+                      id={`brand-${brand.slug}`}
+                      type="checkbox"
+                      className="filterPanel__checkbox"
+                      checked={Listo.brand === brand.slug}
+                      onChange={() => handleBrand(brand.slug)}
+                    />
+                    <span className="filterPanel__labelText">{brand.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </SimpleBar>
+        </div>
+
+        <div className="filterPanel__section">
+          <div className="filterPanel__titleRow">
             <h6 className="filterPanel__title">Tags</h6>
             <span className="filterPanel__counter">{Listo.tags.length}</span>
           </div>
@@ -142,7 +194,7 @@ const FiltersSidebar = ({
           </SimpleBar>
         </div>
 
-        {(Listo.categoryId || Listo.subcategoryId || Listo.tags.length > 0) && (
+        {(Listo.categoryId || Listo.subcategoryId || Listo.brand || Listo.tags.length > 0) && (
           <div className="filterPanel__section">
             <h6 className="filterPanel__title">Filtros activos</h6>
             <div className="filterPanel__chips">
@@ -162,6 +214,15 @@ const FiltersSidebar = ({
                   onClick={() => handleSubcategory(selectedSubcategory._id)}
                 >
                   {selectedSubcategory.name} <span>x</span>
+                </button>
+              )}
+              {selectedBrand && (
+                <button
+                  type="button"
+                  className="filterPanel__chip"
+                  onClick={() => handleBrand(selectedBrand.slug)}
+                >
+                  Marca: {selectedBrand.name} <span>x</span>
                 </button>
               )}
               {activeTagNames.map((tag) => (

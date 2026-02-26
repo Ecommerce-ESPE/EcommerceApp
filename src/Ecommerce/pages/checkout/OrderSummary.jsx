@@ -8,8 +8,12 @@ const OrderSummary = ({
   discountError,
   isApplyingDiscount,
   originalSubtotal,
+  subtotalSinIva,
   discountAmount,
   impuestosCalculados,
+  ivaRate,
+  ivaEnabled,
+  priceIncludesTax,
   step,
   isAuthenticated,
   isProcessing,
@@ -23,7 +27,20 @@ const OrderSummary = ({
     return isNaN(num) ? "0.00" : num.toFixed(decimals);
   };
 
-  const subtotalConDescuento = originalSubtotal - discountAmount;
+  const subtotalConDescuento = Math.max(originalSubtotal - discountAmount, 0);
+  const hasIncludedTax = ivaEnabled && priceIncludesTax && Number(ivaRate) > 0;
+  const subtotalBase = hasIncludedTax
+    ? originalSubtotal / (1 + Number(ivaRate))
+    : originalSubtotal;
+  const subtotalConDescuentoBase = hasIncludedTax
+    ? subtotalSinIva
+    : subtotalConDescuento;
+  const ivaPercentLabel = `${((Number(ivaRate) || 0) * 100).toFixed(0)}%`;
+  const taxLabel = !ivaEnabled
+    ? "IVA (0%)"
+    : priceIncludesTax
+      ? `IVA incluido (${ivaPercentLabel})`
+      : `IVA (${ivaPercentLabel})`;
 
   return (
     <div className="sidebar-sticky-inner">
@@ -68,9 +85,11 @@ const OrderSummary = ({
         </div>
         <ul className="list-unstyled border-bottom mb-0 p-4">
           <li className="d-flex justify-content-between mb-2">
-            <span className="font-weight-bold">Subtotal:</span>
             <span className="font-weight-bold">
-              ${safeToFixed(originalSubtotal)}
+              {hasIncludedTax ? "Subtotal (sin IVA):" : "Subtotal:"}
+            </span>
+            <span className="font-weight-bold">
+              ${safeToFixed(subtotalBase)}
             </span>
           </li>
           <li className="d-flex justify-content-between mb-2">
@@ -80,11 +99,13 @@ const OrderSummary = ({
             </span>
           </li>
           <li className="d-flex justify-content-between mb-2">
-            <span>Subtotal c/ desc:</span>
-            <span>${safeToFixed(subtotalConDescuento)}</span>
+            <span>
+              {hasIncludedTax ? "Subtotal c/ desc (sin IVA):" : "Subtotal c/ desc:"}
+            </span>
+            <span>${safeToFixed(subtotalConDescuentoBase)}</span>
           </li>
           <li className="d-flex justify-content-between mb-2">
-            <span>Impuestos (12%):</span>
+            <span>{taxLabel}:</span>
             <span>${safeToFixed(impuestosCalculados)}</span>
           </li>
           <li className="d-flex justify-content-between mb-2">
