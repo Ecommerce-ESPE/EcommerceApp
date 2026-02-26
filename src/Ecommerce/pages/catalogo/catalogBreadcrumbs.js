@@ -1,4 +1,9 @@
-const normalizeToken = (value = "") => String(value).trim().toLowerCase();
+const normalizeToken = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 
 const toSlug = (value = "") =>
   String(value || "")

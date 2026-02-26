@@ -8,66 +8,18 @@ import {
   resolveSubcategoryByToken,
 } from "./catalogBreadcrumbs.js";
 
-const LISTO_INITIAL_STATE = {
-  categoryId: null,
-  subcategoryId: null,
-  brand: null,
-  tags: [],
-  spec: null,
-};
+const DEFAULT_SORT = "price_asc";
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 12;
 
-const normalizeListValue = (value = "") =>
-  String(value)
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-const validateSpec = (spec) => {
-  if (!spec) return null;
-
-  const key = String(spec.key || "").trim();
-  const type = String(spec.type || "").trim();
-  const value = String(spec.value || "").trim();
-
-  if (!type || !key || !value) {
-    return "Completa tipo, clave y valor de la especificacion.";
-  }
-
-  if (type === "number" && Number.isNaN(Number(value))) {
-    return "Especificacion invalida: el valor numerico no es valido.";
-  }
-
-  if (type === "boolean" && value !== "true" && value !== "false") {
-    return "Especificacion invalida: boolean solo acepta true o false.";
-  }
-
-  if ((type === "list_text" || type === "list_number") && normalizeListValue(value).length === 0) {
-    return "Especificacion invalida: la lista debe contener al menos un elemento.";
-  }
-
-  if (type === "list_number") {
-    const invalidNumber = normalizeListValue(value).some((entry) => Number.isNaN(Number(entry)));
-    if (invalidNumber) {
-      return "Especificacion invalida: list_number requiere solo numeros.";
-    }
-  }
-
-  return null;
-};
-
-const parseSpecFromParams = (params) => {
-  const specKey = params.get("specKey") || "";
-  const specType = params.get("specType") || "";
-  const specValue = params.get("specValue") || "";
-  const specGroup = params.get("specGroup") || "";
-  if (!specKey && !specType && !specValue && !specGroup) return null;
-  return {
-    key: specKey,
-    type: specType,
-    value: specValue,
-    group: specGroup,
-  };
-};
+const toSlug = (value = "") =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 
 const normalizeBrandValue = (brand) => {
   if (!brand) return "";
@@ -78,143 +30,30 @@ const normalizeBrandValue = (brand) => {
   return "";
 };
 
-const sameSpec = (a, b) => {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return (
-    String(a.key || "") === String(b.key || "") &&
-    String(a.type || "") === String(b.type || "") &&
-    String(a.value || "") === String(b.value || "") &&
-    String(a.group || "") === String(b.group || "")
-  );
-};
-
-const sameListo = (a, b) => {
-  if (!a || !b) return false;
-  const aTags = Array.isArray(a.tags) ? a.tags : [];
-  const bTags = Array.isArray(b.tags) ? b.tags : [];
-  return (
-    String(a.categoryId || "") === String(b.categoryId || "") &&
-    String(a.subcategoryId || "") === String(b.subcategoryId || "") &&
-    String(a.brand || "") === String(b.brand || "") &&
-    aTags.length === bTags.length &&
-    aTags.every((tag, idx) => String(tag) === String(bTags[idx])) &&
-    sameSpec(a.spec, b.spec)
-  );
-};
-
-const resolveFromSearch = (search, categories, brandsCatalog) => {
+const parseSearchState = (search) => {
   const params = new URLSearchParams(search || "");
 
-  const categoryRaw = params.get("category") || "";
-  const subcategoryRaw = params.get("subcategory") || "";
-  const brandRaw = params.get("brand") || "";
-
-  const categoryMatch = resolveCategoryByToken(categories, categoryRaw);
-  const subcategoryMatch = resolveSubcategoryByToken(categories, subcategoryRaw, categoryMatch);
-  const brandMatch = resolveBrandByToken(brandsCatalog, brandRaw);
-
-  const tagsRaw = (params.get("tags") || "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-
-  const sort = params.get("sort") || "price_asc";
-  const page = Math.max(Number(params.get("page") || 1), 1);
-  const limit = Math.max(Number(params.get("limit") || 12), 1);
-
-  const listo = {
-    categoryId: categoryMatch?._id || categoryRaw || null,
-    subcategoryId: subcategoryMatch?._id || subcategoryRaw || null,
-    brand: brandMatch?.slug || brandRaw || null,
-    tags: tagsRaw,
-    spec: parseSpecFromParams(params),
-  };
-
-  const context = {
-    category:
-      categoryMatch || categoryRaw
-        ? {
-            label: categoryMatch?.name || categoryRaw,
-            token: categoryMatch?.slug || categoryMatch?._id || categoryRaw,
-          }
-        : null,
-    subcategory:
-      subcategoryMatch || subcategoryRaw
-        ? {
-            label: subcategoryMatch?.name || subcategoryRaw,
-            token: subcategoryMatch?.slug || subcategoryMatch?._id || subcategoryRaw,
-          }
-        : null,
-    brand:
-      brandMatch || brandRaw
-        ? {
-            label: brandMatch?.name || brandRaw,
-            token: brandMatch?.slug || brandRaw,
-          }
-        : null,
-  };
-
   return {
-    listo,
-    sort,
-    page,
-    limit,
-    context,
+    categoryToken: params.get("category") || "",
+    subcategoryToken: params.get("subcategory") || "",
+    brandToken: params.get("brand") || "",
+    tags: (params.get("tags") || "")
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    spec: {
+      key: params.get("specKey") || "",
+      type: params.get("specType") || "",
+      value: params.get("specValue") || "",
+      group: params.get("specGroup") || "",
+    },
+    sort: params.get("sort") || DEFAULT_SORT,
+    page: Math.max(Number(params.get("page") || DEFAULT_PAGE), 1),
+    limit: Math.max(Number(params.get("limit") || DEFAULT_LIMIT), 1),
   };
 };
 
-const tokenOrSlug = (value = "") =>
-  String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const buildSearchFromState = ({ listo, sort, page, limit, categories }) => {
-  const params = new URLSearchParams();
-
-  const categoryMatch = categories.find((cat) => cat?._id === listo?.categoryId);
-  const categoryToken =
-    categoryMatch?.slug ||
-    tokenOrSlug(categoryMatch?.name) ||
-    listo?.categoryId;
-  if (categoryToken) params.append("category", categoryToken);
-
-  let subcategoryToken = "";
-  if (listo?.subcategoryId) {
-    const subPool = categoryMatch?.subcategories?.length
-      ? categoryMatch.subcategories
-      : categories.flatMap((cat) => cat?.subcategories || []);
-    const subMatch = subPool.find((sub) => sub?._id === listo.subcategoryId);
-    subcategoryToken =
-      subMatch?.slug ||
-      tokenOrSlug(subMatch?.name) ||
-      listo.subcategoryId;
-  }
-  if (subcategoryToken) params.append("subcategory", subcategoryToken);
-
-  if (listo?.brand) params.append("brand", listo.brand);
-  if (Array.isArray(listo?.tags) && listo.tags.length > 0) {
-    params.append("tags", listo.tags.join(","));
-  }
-
-  if (listo?.spec) {
-    const { key, type, value, group } = listo.spec;
-    if (key) params.append("specKey", String(key).trim());
-    if (type) params.append("specType", String(type).trim());
-    if (value) params.append("specValue", String(value).trim());
-    if (group) params.append("specGroup", String(group).trim());
-  }
-
-  params.append("sort", sort || "price_asc");
-  params.append("page", String(page || 1));
-  params.append("limit", String(limit || 12));
-
-  return params.toString();
-};
+const stringifySearch = (params) => params.toString();
 
 export const useCatalog = () => {
   const location = useLocation();
@@ -224,31 +63,86 @@ export const useCatalog = () => {
   const [brandsCatalog, setBrandsCatalog] = useState([]);
   const [tagsCatalog, setTagsCatalog] = useState([]);
   const [products, setProducts] = useState([]);
-  const [Listo, setListo] = useState(LISTO_INITIAL_STATE);
-  const [sort, setSort] = useState("price_asc");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(12);
   const [loading, setLoading] = useState(false);
   const [filterError, setFilterError] = useState("");
-  const [queryHydrated, setQueryHydrated] = useState(false);
-  const [breadcrumbContext, setBreadcrumbContext] = useState({
-    category: null,
-    subcategory: null,
-    brand: null,
-  });
+
+  const searchState = useMemo(() => parseSearchState(location.search), [location.search]);
+
+  const selectedCategory = useMemo(
+    () => resolveCategoryByToken(categories, searchState.categoryToken),
+    [categories, searchState.categoryToken]
+  );
+
+  const selectedSubcategory = useMemo(
+    () =>
+      resolveSubcategoryByToken(
+        categories,
+        searchState.subcategoryToken,
+        selectedCategory
+      ),
+    [categories, searchState.subcategoryToken, selectedCategory]
+  );
+
+  const selectedBrand = useMemo(
+    () => resolveBrandByToken(brandsCatalog, searchState.brandToken),
+    [brandsCatalog, searchState.brandToken]
+  );
+
+  const Listo = useMemo(
+    () => ({
+      categoryId: selectedCategory?._id || null,
+      subcategoryId: selectedSubcategory?._id || null,
+      brand: selectedBrand?.slug || searchState.brandToken || null,
+      tags: searchState.tags,
+      spec:
+        searchState.spec.key || searchState.spec.type || searchState.spec.value || searchState.spec.group
+          ? searchState.spec
+          : null,
+    }),
+    [selectedCategory, selectedSubcategory, selectedBrand, searchState.brandToken, searchState.tags, searchState.spec]
+  );
 
   const toolbarFilters = useMemo(
     () => ({
-      sort,
-      page,
-      limit,
+      sort: searchState.sort,
+      page: searchState.page,
+      limit: searchState.limit,
     }),
-    [sort, page, limit]
+    [searchState.sort, searchState.page, searchState.limit]
   );
 
   const catalogCrumbs = useMemo(
-    () => buildCatalogCrumbs(breadcrumbContext),
-    [breadcrumbContext]
+    () =>
+      buildCatalogCrumbs({
+        category:
+          searchState.categoryToken || selectedCategory
+            ? {
+                label: selectedCategory?.name || searchState.categoryToken,
+                token:
+                  selectedCategory?.slug ||
+                  toSlug(selectedCategory?.name) ||
+                  searchState.categoryToken,
+              }
+            : null,
+        subcategory:
+          searchState.subcategoryToken || selectedSubcategory
+            ? {
+                label: selectedSubcategory?.name || searchState.subcategoryToken,
+                token:
+                  selectedSubcategory?.slug ||
+                  toSlug(selectedSubcategory?.name) ||
+                  searchState.subcategoryToken,
+              }
+            : null,
+        brand:
+          searchState.brandToken || selectedBrand
+            ? {
+                label: selectedBrand?.name || searchState.brandToken,
+                token: selectedBrand?.slug || searchState.brandToken,
+              }
+            : null,
+      }),
+    [searchState.categoryToken, searchState.subcategoryToken, searchState.brandToken, selectedCategory, selectedSubcategory, selectedBrand]
   );
 
   const fetchCategories = useCallback(async () => {
@@ -337,181 +231,217 @@ export const useCatalog = () => {
     }
   }, []);
 
-  const fetchProducts = useCallback(async ({ listo, nextSort, nextPage, nextLimit }) => {
-    const specError = validateSpec(listo?.spec);
-    if (specError) {
-      setFilterError(specError);
-      return false;
-    }
-
-    setFilterError("");
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-
-      if (listo?.categoryId) params.append("category", listo.categoryId);
-      if (listo?.subcategoryId) params.append("subcategory", listo.subcategoryId);
-      if (listo?.brand) params.append("brand", listo.brand);
-      if (Array.isArray(listo?.tags) && listo.tags.length > 0) {
-        params.append("tags", listo.tags.join(","));
-      }
-
-      if (listo?.spec) {
-        const { key, type, value, group } = listo.spec;
-        params.append("specKey", String(key).trim());
-        params.append("specType", String(type).trim());
-        params.append("specValue", String(value).trim());
-        if (group && String(group).trim()) {
-          params.append("specGroup", String(group).trim());
-        }
-      }
-
-      params.append("sort", nextSort || "price_asc");
-      params.append("page", String(nextPage || 1));
-      params.append("limit", String(nextLimit || 12));
-
-      const response = await fetch(`${API_BASE}/items/filter?${params.toString()}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 400) {
-          setFilterError("Especificacion invalida.");
-        }
-        setProducts([]);
-        return false;
-      }
-
-      setProducts(data.items || []);
-      return true;
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      setProducts([]);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchCategories();
     fetchBrands();
     fetchTags();
   }, [fetchCategories, fetchBrands, fetchTags]);
 
+  // Fetch estable: solo por cambios reales de location.search
   useEffect(() => {
-    const parsed = resolveFromSearch(location.search, categories, brandsCatalog);
+    const controller = new AbortController();
+    const params = new URLSearchParams(location.search || "");
 
-    setBreadcrumbContext(parsed.context);
+    if (!params.get("sort")) params.set("sort", DEFAULT_SORT);
+    if (!params.get("page")) params.set("page", String(DEFAULT_PAGE));
+    if (!params.get("limit")) params.set("limit", String(DEFAULT_LIMIT));
 
-    setListo((prev) => (sameListo(prev, parsed.listo) ? prev : parsed.listo));
-    setSort((prev) => (prev === parsed.sort ? prev : parsed.sort));
-    setPage((prev) => (prev === parsed.page ? prev : parsed.page));
-    setLimit((prev) => (prev === parsed.limit ? prev : parsed.limit));
+    const fetchData = async () => {
+      setLoading(true);
+      setFilterError("");
+      try {
+        const response = await fetch(`${API_BASE}/items/filter?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
 
-    fetchProducts({
-      listo: parsed.listo,
-      nextSort: parsed.sort,
-      nextPage: parsed.page,
-      nextLimit: parsed.limit,
-    });
-    setQueryHydrated(true);
-  }, [location.search, categories, brandsCatalog, fetchProducts]);
+        if (!response.ok) {
+          if (response.status === 400) {
+            setFilterError("Especificacion invalida.");
+          }
+          setProducts([]);
+          return;
+        }
 
-  const handleCategory = useCallback((catId) => {
-    setListo((prev) => ({
-      ...prev,
-      categoryId: prev.categoryId === catId ? null : catId,
-      subcategoryId: null,
-    }));
-    setPage(1);
-  }, []);
+        setProducts(Array.isArray(data?.items) ? data.items : []);
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+        console.error("Error fetching products:", error);
+        setProducts([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
 
-  const handleSubcategory = useCallback((subId) => {
-    setListo((prev) => ({
-      ...prev,
-      subcategoryId: prev.subcategoryId === subId ? null : subId,
-    }));
-    setPage(1);
-  }, []);
+    fetchData();
 
-  const handleBrand = useCallback((brandSlug) => {
-    setListo((prev) => ({
-      ...prev,
-      brand: prev.brand === brandSlug ? null : brandSlug,
-    }));
-    setPage(1);
-  }, []);
+    return () => controller.abort();
+  }, [location.search]);
 
-  const handleToggleTag = useCallback((tagSlug) => {
-    setListo((prev) => {
-      const currentTags = prev.tags || [];
-      const nextTags = currentTags.includes(tagSlug)
-        ? currentTags.filter((slug) => slug !== tagSlug)
-        : [...currentTags, tagSlug];
-      return {
-        ...prev,
-        tags: nextTags,
-      };
-    });
-    setPage(1);
-  }, []);
+  const updateSearchParams = useCallback(
+    (mutator) => {
+      const params = new URLSearchParams(location.search || "");
+      mutator(params);
 
-  const handleUpdateSpec = useCallback((field, value) => {
-    setListo((prev) => {
-      const currentSpec = prev.spec || { key: "", type: "", value: "", group: "" };
-      const nextSpec = { ...currentSpec, [field]: value };
-      const hasAny = [nextSpec.key, nextSpec.type, nextSpec.value, nextSpec.group]
-        .map((entry) => String(entry || "").trim())
-        .some(Boolean);
+      if (!params.get("sort")) params.set("sort", DEFAULT_SORT);
+      if (!params.get("page")) params.set("page", String(DEFAULT_PAGE));
+      if (!params.get("limit")) params.set("limit", String(DEFAULT_LIMIT));
 
-      return {
-        ...prev,
-        spec: hasAny ? nextSpec : null,
-      };
-    });
-    setPage(1);
-  }, []);
+      const next = stringifySearch(params);
+      const current = stringifySearch(new URLSearchParams(location.search || ""));
+      if (next !== current) {
+        navigate(`/shop?${next}`);
+      }
+    },
+    [location.search, navigate]
+  );
+
+  const handleCategory = useCallback(
+    (catId) => {
+      const category = categories.find((cat) => cat?._id === catId);
+      const categoryToken =
+        category?.slug || toSlug(category?.name) || category?._id || "";
+
+      updateSearchParams((params) => {
+        const current = params.get("category") || "";
+        if (current === categoryToken) {
+          params.delete("category");
+          params.delete("subcategory");
+        } else {
+          params.set("category", categoryToken);
+          params.delete("subcategory");
+        }
+        params.set("page", "1");
+      });
+    },
+    [categories, updateSearchParams]
+  );
+
+  const handleSubcategory = useCallback(
+    (subId) => {
+      const subPool = selectedCategory?.subcategories?.length
+        ? selectedCategory.subcategories
+        : categories.flatMap((cat) => cat?.subcategories || []);
+      const sub = subPool.find((entry) => entry?._id === subId);
+      const subToken = sub?.slug || toSlug(sub?.name) || sub?._id || "";
+
+      updateSearchParams((params) => {
+        const current = params.get("subcategory") || "";
+        if (current === subToken) {
+          params.delete("subcategory");
+        } else if (subToken) {
+          params.set("subcategory", subToken);
+        }
+        params.set("page", "1");
+      });
+    },
+    [categories, selectedCategory, updateSearchParams]
+  );
+
+  const handleBrand = useCallback(
+    (brandSlug) => {
+      updateSearchParams((params) => {
+        const current = params.get("brand") || "";
+        if (current === brandSlug) params.delete("brand");
+        else params.set("brand", brandSlug);
+        params.set("page", "1");
+      });
+    },
+    [updateSearchParams]
+  );
+
+  const handleToggleTag = useCallback(
+    (tagSlug) => {
+      updateSearchParams((params) => {
+        const currentTags = (params.get("tags") || "")
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+
+        const nextTags = currentTags.includes(tagSlug)
+          ? currentTags.filter((tag) => tag !== tagSlug)
+          : [...currentTags, tagSlug];
+
+        if (nextTags.length > 0) params.set("tags", nextTags.join(","));
+        else params.delete("tags");
+
+        params.set("page", "1");
+      });
+    },
+    [updateSearchParams]
+  );
+
+  const handleUpdateSpec = useCallback(
+    (field, value) => {
+      updateSearchParams((params) => {
+        const currentSpec = {
+          key: params.get("specKey") || "",
+          type: params.get("specType") || "",
+          value: params.get("specValue") || "",
+          group: params.get("specGroup") || "",
+        };
+
+        const nextSpec = { ...currentSpec, [field]: value };
+        const hasAny = Object.values(nextSpec).some((entry) => String(entry || "").trim());
+
+        if (!hasAny) {
+          params.delete("specKey");
+          params.delete("specType");
+          params.delete("specValue");
+          params.delete("specGroup");
+        } else {
+          params.set("specKey", String(nextSpec.key || "").trim());
+          params.set("specType", String(nextSpec.type || "").trim());
+          params.set("specValue", String(nextSpec.value || "").trim());
+          if (String(nextSpec.group || "").trim()) {
+            params.set("specGroup", String(nextSpec.group || "").trim());
+          } else {
+            params.delete("specGroup");
+          }
+        }
+
+        params.set("page", "1");
+      });
+    },
+    [updateSearchParams]
+  );
 
   const handleSortChange = useCallback(
     (value) => {
-      setSort(value);
-      setPage(1);
+      updateSearchParams((params) => {
+        params.set("sort", value || DEFAULT_SORT);
+        params.set("page", "1");
+      });
     },
-    []
+    [updateSearchParams]
   );
 
   const handleLimitChange = useCallback(
     (value) => {
-      const nextLimit = Number(value);
-      setLimit(nextLimit);
-      setPage(1);
+      const nextLimit = Number(value) || DEFAULT_LIMIT;
+      updateSearchParams((params) => {
+        params.set("limit", String(nextLimit));
+        params.set("page", "1");
+      });
     },
-    []
+    [updateSearchParams]
   );
-
-  // Sincroniza filtros -> URL. La URL es fuente de verdad para fetch y estado.
-  useEffect(() => {
-    if (!queryHydrated) return;
-    const nextSearch = buildSearchFromState({
-      listo: Listo,
-      sort,
-      page,
-      limit,
-      categories,
-    });
-    const currentSearch = new URLSearchParams(location.search || "").toString();
-    if (nextSearch !== currentSearch) {
-      navigate(`/shop?${nextSearch}`);
-    }
-  }, [queryHydrated, Listo, sort, page, limit, categories, location.search, navigate]);
 
   const applyFilters = useCallback(() => {}, []);
 
   const clearFilters = useCallback(() => {
-    setFilterError("");
-    setListo(LISTO_INITIAL_STATE);
-    setPage(1);
-  }, []);
+    updateSearchParams((params) => {
+      params.delete("category");
+      params.delete("subcategory");
+      params.delete("brand");
+      params.delete("tags");
+      params.delete("specKey");
+      params.delete("specType");
+      params.delete("specValue");
+      params.delete("specGroup");
+      params.set("page", "1");
+    });
+  }, [updateSearchParams]);
 
   return {
     categories,
