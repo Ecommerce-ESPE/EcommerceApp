@@ -84,7 +84,16 @@ const AccountHomePage = () => {
           ? activityData
           : [];
         const mappedActivity = activityRows.map((item, index) => ({
-          id: `${item?.orderNumber || item?.when || index}`,
+          id: `${
+            item?._id ||
+            item?.id ||
+            item?.transactionId ||
+            item?.orderId ||
+            item?.orderNumber ||
+            item?.when ||
+            item?.createdAt ||
+            "activity"
+          }-${index}`,
           type: mapActivityType(item),
           label: item?.title || "Actividad",
           detail: item?.subtitle ||

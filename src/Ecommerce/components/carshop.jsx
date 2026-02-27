@@ -1,5 +1,6 @@
 import { useEffect,useContext } from "react";
 import { CartContext } from '../context/cartContext';
+import QuantityInput from "./QuantityInput";
 
 const API_BASE = "https://backend-ecommerce-aasn.onrender.com/api";
 
@@ -29,6 +30,9 @@ export const CartShop = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const getCartItemKey = (item, index) =>
+    item?.id || `${item?.productId || "item"}-${item?.sizeId || item?.size || index}`;
 
 
   return (
@@ -87,8 +91,10 @@ export const CartShop = () => {
         </div>
 
         <div className="cs-offcanvas-body">
-          {cart.map((item) => (
-            <div key={item.sizeId || item.productId || item.id} className="media p-4 border-bottom mx-n4">
+          {cart.map((item, index) => {
+            const itemKey = getCartItemKey(item, index);
+            return (
+            <div key={itemKey} className="media p-4 border-bottom mx-n4">
               <div style={{ minWidth: "80px" }}>
                 <img
                   src={item.image}
@@ -109,15 +115,9 @@ export const CartShop = () => {
                       </li>
                     </ul>
                     <div className="d-flex align-items-center">
-                      <input
-                        type="number"
-                        className="form-control form-control-sm bg-light mr-3"
-                        style={{ width: "4.5rem" }}
+                      <QuantityInput
                         value={item.quantity}
-                        min="1"
-                        onChange={(e) =>
-                          updateQuantity(item.id, parseInt(e.target.value))
-                        }
+                        onCommit={(nextQty) => updateQuantity(itemKey, nextQty)}
                       />
                       <div className="text-nowrap">
                         <strong className="text-danger">
@@ -132,7 +132,7 @@ export const CartShop = () => {
                   <div className="nav-muted mr-n2">
                     <button
                       className="nav-link px-2 mt-n2 bg-transparent border-0"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(itemKey)}
                     >
                       <i className="cxi-delete"></i>
                     </button>
@@ -140,7 +140,8 @@ export const CartShop = () => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {cart.length === 0 && (
             <div className="text-center p-4">

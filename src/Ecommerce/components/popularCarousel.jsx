@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay } from "swiper/modules";
+import { Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { API_BASE } from "../services/api";
-import "./ProductCarousel.css"; 
+import WishlistIconButton from "./WishlistIconButton";
+import "./ProductCarousel.css";
 
 export const PopularProductCarousel = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const canLoop = products.length > 4;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -51,7 +53,9 @@ export const PopularProductCarousel = () => {
                   ? rawDiscount ?? computedDiscount
                   : null;
               const price =
-                discountPrice != null && originalPrice != null && discountPrice < originalPrice
+                discountPrice != null &&
+                originalPrice != null &&
+                discountPrice < originalPrice
                   ? discountPrice
                   : originalPrice ?? discountPrice;
 
@@ -74,7 +78,6 @@ export const PopularProductCarousel = () => {
               image: item.banner,
               title: item.nameProduct,
               rating: item.rating,
-              wishlist: false,  
               link: `/producto/${item.slug || item._id}`,
               price: bestVariant?.price ?? null,
               originalPrice: bestVariant?.originalPrice ?? null,
@@ -92,9 +95,9 @@ export const PopularProductCarousel = () => {
         } else {
           setProducts([]);
         }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setError(error.message);
+      } catch (fetchError) {
+        console.error("Error fetching products:", fetchError);
+        setError(fetchError.message);
       } finally {
         setIsLoading(false);
       }
@@ -102,16 +105,6 @@ export const PopularProductCarousel = () => {
 
     fetchProducts();
   }, []);
-
-  const toggleWishlist = (productId) => {
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === productId
-          ? { ...product, wishlist: !product.wishlist }
-          : product
-      )
-    );
-  };
 
   if (isLoading) {
     return (
@@ -124,33 +117,26 @@ export const PopularProductCarousel = () => {
   }
 
   if (error) {
-    return (
-      <div className="alert alert-danger">
-        Error al cargar productos: {error}
-      </div>
-    );
+    return <div className="alert alert-danger">Error al cargar productos: {error}</div>;
   }
 
   if (products.length === 0) {
     return <div className="alert alert-info">No hay productos disponibles</div>;
   }
 
-  const formatPrice = (value) =>
-    Number.isFinite(value) ? value.toFixed(2) : "N/A";
+  const formatPrice = (value) => (Number.isFinite(value) ? value.toFixed(2) : "N/A");
 
   return (
     <div className="cs-carousel cs-nav-outside position-relative">
-      {/* Swiper Component */}
       <Swiper
         modules={[Navigation, Autoplay]}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
-        loop={true}
+        loop={canLoop}
         spaceBetween={30}
         navigation={{
           prevEl: ".swiper-button-prev-custom",
           nextEl: ".swiper-button-next-custom",
         }}
-        //pagination={{ clickable: true }}
         breakpoints={{
           0: { slidesPerView: 1 },
           420: { slidesPerView: 2 },
@@ -166,28 +152,23 @@ export const PopularProductCarousel = () => {
                   <img
                     src={product.image}
                     alt={product.title}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src =
-                        "https://via.placeholder.com/300x300?text=Imagen+no+disponible";
+                    onError={(event) => {
+                      event.target.onerror = null;
+                      event.target.src = "https://via.placeholder.com/300x300?text=Imagen+no+disponible";
                     }}
                   />
                 </a>
 
                 <div className="card-product-widgets-top">
                   {product.promoPercentage && (
-                    <span className="badge product-badge badge-danger">
-                      -{product.promoPercentage}%
-                    </span>
+                    <span className="badge product-badge badge-danger">-{product.promoPercentage}%</span>
                   )}
                   {product.rating > 0 && (
                     <div className="star-rating ml-auto">
                       {[...Array(5)].map((_, i) => (
                         <i
                           key={i}
-                          className={`sr-star cxi-star-filled ${
-                            i < product.rating ? "active" : ""
-                          }`}
+                          className={`sr-star cxi-star-filled ${i < product.rating ? "active" : ""}`}
                         ></i>
                       ))}
                     </div>
@@ -195,22 +176,7 @@ export const PopularProductCarousel = () => {
                 </div>
 
                 <div className="card-product-widgets-bottom">
-                  <button
-                    className={`btn-wishlist ml-auto ${
-                      product.wishlist ? "active" : ""
-                    }`}
-                    onClick={() => toggleWishlist(product.id)}
-                    title={
-                      product.wishlist
-                        ? "Remover de favoritos"
-                        : "Agregar a favoritos"
-                    }
-                    aria-label={
-                      product.wishlist
-                        ? "Remover de favoritos"
-                        : "Agregar a favoritos"
-                    }
-                  ></button>
+                  <WishlistIconButton itemId={product.id} size="medium" />
                 </div>
               </div>
 
@@ -222,11 +188,7 @@ export const PopularProductCarousel = () => {
                 </h3>
 
                 <div className="d-flex align-items-center">
-                  <span
-                    className={`h5 d-inline-block mb-0 ${
-                      product.hasDiscount ? "text-danger" : ""
-                    }`}
-                  >
+                  <span className={`h5 d-inline-block mb-0 ${product.hasDiscount ? "text-danger" : ""}`}>
                     ${formatPrice(product.price)}
                   </span>
                   {product.hasDiscount && (
@@ -240,7 +202,6 @@ export const PopularProductCarousel = () => {
           </SwiperSlide>
         ))}
       </Swiper>
-
     </div>
   );
 };

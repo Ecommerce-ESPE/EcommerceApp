@@ -14,6 +14,8 @@ const ProductGallery = ({ product }) => {
   const galleryRef = useRef(null);
   const sliderInstance = useRef(null);
   const lightGalleryInstance = useRef(null);
+  const isMountedRef = useRef(false);
+  const touchStartRef = useRef({ x: 0, y: 0, moved: false });
   const [isReady, setIsReady] = useState(false);
 
   const images = product?.images?.map(img => img?.imgUrl) || [];
@@ -23,10 +25,19 @@ const ProductGallery = ({ product }) => {
   const productImage = product?.banner || 'https://via.placeholder.com/570x570?text=No+Image';
   // Check if we have content to show
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (totalItems > 0) {
       // Wait for DOM to be ready
       const timer = setTimeout(() => {
-        setIsReady(true);
+        if (isMountedRef.current) {
+          setIsReady(true);
+        }
       }, 300);
       
       return () => clearTimeout(timer);
@@ -36,19 +47,37 @@ const ProductGallery = ({ product }) => {
   // Initialize slider and lightGallery when ready
   useEffect(() => {
     if (!isReady || typeof window === 'undefined' || totalItems === 0) return;
+
+    const safeDestroySlider = () => {
+      const instance = sliderInstance.current;
+      if (!instance || typeof instance.destroy !== 'function') return;
+      try {
+        instance.destroy();
+      } catch (error) {
+        console.warn('Slider cleanup error:', error);
+      } finally {
+        sliderInstance.current = null;
+      }
+    };
+
+    const safeDestroyLightGallery = () => {
+      const instance = lightGalleryInstance.current;
+      if (!instance || typeof instance.destroy !== 'function') return;
+      try {
+        instance.destroy();
+      } catch (error) {
+        console.warn('LightGallery cleanup error:', error);
+      } finally {
+        lightGalleryInstance.current = null;
+      }
+    };
     
     const initSlider = () => {
       // Clean up existing slider instance
-      if (sliderInstance.current && typeof sliderInstance.current.destroy === 'function') {
-        try {
-          sliderInstance.current.destroy(true);
-          sliderInstance.current = null;
-        } catch (error) {
-          console.warn('Error destroying previous slider:', error);
-        }
-      }
+      safeDestroySlider();
 
       try {
+        if (!sliderRef.current || !pagerRef.current) return;
         // Initialize tiny-slider
         sliderInstance.current = tns({
           container: sliderRef.current,
@@ -60,7 +89,7 @@ const ProductGallery = ({ product }) => {
           autoplay: false,
           autoplayButtonOutput: false,
           mouseDrag: true,
-          preventScrollOnTouch: 'force',
+          preventScrollOnTouch: 'auto',
           controls: true,
           controlsText: [
             '<i class="cxi-arrow-left"></i>',
@@ -73,20 +102,11 @@ const ProductGallery = ({ product }) => {
         });
       } catch (error) {
         console.error('Error initializing slider:', error);
-        console.error('Error initializing slider:', error);
       }
     };
     const initLightGallery = () => {
       // Clean up existing lightGallery instance
-      if (lightGalleryInstance.current && 
-          typeof lightGalleryInstance.current.destroy === 'function') {
-        try {
-          lightGalleryInstance.current.destroy(true);
-          lightGalleryInstance.current = null;
-        } catch (error) {
-          console.warn('Error destroying previous lightGallery:', error);
-        }
-      }
+      safeDestroyLightGallery();
 
       try {
         // Initialize lightGallery
@@ -94,6 +114,7 @@ const ProductGallery = ({ product }) => {
           lightGalleryInstance.current = lightGallery(galleryRef.current, {
             selector: '.cs-gallery-item',
             download: false,
+            hideScrollbar: false,
             videojs: true,
             youtubePlayerParams: { 
               modestbranding: 1, 
@@ -104,6 +125,12 @@ const ProductGallery = ({ product }) => {
               byline: 0, 
               portrait: 0 
             },
+            mobileSettings: {
+              controls: false,
+              showCloseIcon: true,
+              download: false,
+            },
+            licenseKey: import.meta.env.VITE_LIGHTGALLERY_LICENSE_KEY || undefined,
             plugins: [lgZoom, lgVideo]
           });
         }
@@ -117,24 +144,34 @@ const ProductGallery = ({ product }) => {
     
     // Cleanup function
     return () => {
-      if (sliderInstance.current && typeof sliderInstance.current.destroy === 'function') {
-        try {
-          sliderInstance.current.destroy(true);
-        } catch (error) {
-          console.warn('Slider cleanup error:', error);
-        }
-      }
-      
-      if (lightGalleryInstance.current && 
-          typeof lightGalleryInstance.current.destroy === 'function') {
-        try {
-          lightGalleryInstance.current.destroy(true);
-        } catch (error) {
-          console.warn('LightGallery cleanup error:', error);
-        }
-      }
+      safeDestroySlider();
+      safeDestroyLightGallery();
     };
   }, [isReady, totalItems]);
+
+  const handleTouchStart = (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, moved: false };
+  };
+
+  const handleTouchMove = (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+    const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+    if (dx > 8 || dy > 8) {
+      touchStartRef.current.moved = true;
+    }
+  };
+
+  const handleGalleryItemClick = (event) => {
+    // In mobile swipe gestures, prevent opening lightGallery by mistake.
+    if (touchStartRef.current.moved) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
 
   // Don't render if no content
   if (totalItems === 0) {
@@ -163,6 +200,9 @@ const ProductGallery = ({ product }) => {
             className="cs-gallery-item"
             href={imgUrl}
             data-sub-html={`<h6 class="text-light">${name} - Image ${index + 1}</h6>`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onClick={handleGalleryItemClick}
           >
             <img 
               className="rounded" 
@@ -183,6 +223,9 @@ const ProductGallery = ({ product }) => {
             href={product.video}
             data-sub-html={`<h6 class="text-light">${name} - Video</h6>`}
             data-video={`{"source": [{"src":"${product.video}", "type":"video/mp4"}], "attributes": {"preload": false, "controls": true}}`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onClick={handleGalleryItemClick}
           >
             <img 
               className="rounded" 

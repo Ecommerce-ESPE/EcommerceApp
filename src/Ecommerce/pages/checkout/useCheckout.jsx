@@ -1,12 +1,13 @@
 import { useState, useEffect, useContext } from "react";
 import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
+import { API_BASE } from "../../services/api";
 
 import {
   applyDiscount,
   processTransaction,
   buildTransactionData,
-} from "../../services/checkoutService";
+} from "../../services/checkoutService.jsx";
 import { setPrimaryAddress } from "../../services/account";
 import { useStoreSettings } from "../../context/storeSettingsContext";
 
@@ -41,11 +42,6 @@ const clearCheckoutDraft = () => {
     // noop
   }
 };
-
-export const API_BASE =
-  process.env.NODE_ENV === "production"
-    ? "https://backend-ecommerce-aasn.onrender.com/api"
-    : "http://localhost:3200/api";
 
 export const useCheckout = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } =
@@ -86,6 +82,8 @@ export const useCheckout = () => {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("credit-card");
+  const [paymentDetails, setPaymentDetails] = useState({});
   const [addressFormValid, setAddressFormValid] = useState(false);
   const [paymentFormValid, setPaymentFormValid] = useState(false);
   const [addressData, setAddressData] = useState({
@@ -387,7 +385,6 @@ export const useCheckout = () => {
 
       setUserData((prev) => {
         const prevAddresses = prev?.address || [];
-        const nextIndex = prevAddresses.length;
         const nextAddress = {
           ...createdAddress,
           isPrimary: true,
@@ -506,17 +503,47 @@ export const useCheckout = () => {
   };
 
   const completeOrder = async () => {
+    if (!isAuthenticated) {
+      notyf.error("Debes iniciar sesion para completar el pedido");
+      return;
+    }
+
+    if (!selectedShipping?.id) {
+      notyf.error("Selecciona un metodo de envio");
+      return;
+    }
+
+    if (!paymentFormValid) {
+      notyf.error("Completa correctamente el metodo de pago");
+      return;
+    }
+
+    const userId = String(
+      userData?._id || userData?.uid || userData?.id || userData?.userId || ""
+    ).trim();
+    if (!userId) {
+      notyf.error("No se pudo identificar el usuario para el checkout");
+      return;
+    }
+
+    const hasMissingVariant = cart.some(
+      (item) => !String(item?.sizeId || item?.variantId || item?.priceId || "").trim()
+    );
+    if (hasMissingVariant) {
+      notyf.error("Algunos productos no tienen variante seleccionada");
+      return;
+    }
+
     const transactionData = buildTransactionData(
       isAuthenticated,
       userData,
       cart,
-      selectedShipping.id,
+      selectedShipping,
       selectedAddress,
       addressData,
       discountApplied,
-      cardNumber,
-      expiry,
-      cvc,
+      paymentMethod,
+      paymentDetails,
       selectedProvince,
       selectedCanton,
       selectedParish
@@ -531,7 +558,14 @@ export const useCheckout = () => {
       clearCart,
     };
 
-    processTransaction(transactionData, setters);
+    processTransaction(transactionData, setters, {
+      tenantId:
+        settings?.tenantId ||
+        settings?.tenant?._id ||
+        settings?.tenant?.id ||
+        "DEFAULT",
+      branchId: settings?.branchId || settings?.branch?._id || settings?.branch?.id || "DEFAULT",
+    });
   };
 
   return {
@@ -602,6 +636,10 @@ export const useCheckout = () => {
     setExpiry,
     cvc,
     setCvc,
+    paymentMethod,
+    setPaymentMethod,
+    paymentDetails,
+    setPaymentDetails,
     paymentFormValid,
     setPaymentFormValid,
     paymentError,

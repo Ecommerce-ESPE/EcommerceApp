@@ -12,27 +12,21 @@ const getPriceByPriceId = (priceId, cart) => {
 
 export const applyDiscount = async (discountCode, cart, setters) => {
   const { setIsApplyingDiscount, setDiscountApplied, setDiscountError } = setters;
-  
+
   setIsApplyingDiscount(true);
   setDiscountError("");
 
   try {
     const cartItemsPayload = cart.map((item) => {
-      // Extraer productId e priceId según tu estructura actual
-      const [productId, priceId] = item.id?.split('-') || [];
-      
-      // Usar el precio del item o buscar en variantes si es necesario
+      const [productId, priceId] = item.id?.split("-") || [];
       const price = item.price || (priceId ? getPriceByPriceId(priceId, cart) : 0);
-      
+
       return {
-        productId: productId || item.productId, // Asegurar productId
+        productId: productId || item.productId,
         price: Number(price),
         quantity: Number(item.quantity || 1),
-        //...(priceId && { priceId }) 
       };
     });
-
-    console.log('Payload enviado al backend:', { items: cartItemsPayload, discountCode });
 
     const response = await fetch(`${API_BASE}/wallet/validateDiscount`, {
       method: "POST",
@@ -44,19 +38,17 @@ export const applyDiscount = async (discountCode, cart, setters) => {
     });
 
     const data = await response.json();
-    console.log('Respuesta del backend:', data);
-    
+
     if (!response.ok || !data.valid) {
-      throw new Error(data.message || "Código de descuento inválido");
+      throw new Error(data.message || "Codigo de descuento invalido");
     }
 
     setDiscountApplied({
       amount: data.discountAmount,
       code: discountCode,
-      subtotal: data.subtotal // Usar el subtotal calculado por el backend
+      subtotal: data.subtotal,
     });
   } catch (error) {
-    console.error('Error al aplicar descuento:', error);
     setDiscountError(error.message);
     setDiscountApplied(null);
   } finally {
@@ -64,56 +56,56 @@ export const applyDiscount = async (discountCode, cart, setters) => {
   }
 };
 
-
-// Servicio para procesar transacciones
-export const processTransaction = async (transactionData, setters) => {
-  const { 
-    setIsProcessing, 
-    setOrderStatus, 
-    setTransactionInfo, 
-    setPaymentError, 
-    setPaymentSuggestion, 
-    clearCart 
+export const processTransaction = async (transactionData, setters, meta = {}) => {
+  const {
+    setIsProcessing,
+    setOrderStatus,
+    setTransactionInfo,
+    setPaymentError,
+    setPaymentSuggestion,
+    clearCart,
   } = setters;
-  
+
+  const tenantId = String(meta?.tenantId || "DEFAULT").trim() || "DEFAULT";
+  const branchId = String(meta?.branchId || "DEFAULT").trim() || "DEFAULT";
+
   setIsProcessing(true);
   setPaymentError("");
   setPaymentSuggestion("");
 
   try {
     const token = localStorage.getItem("token");
-    const response = await fetch(
-      `${API_BASE}/transaction/process`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-          "x-checkout-origin": "online",
-        },
-        body: JSON.stringify(transactionData),
-      }
-    );
+    const response = await fetch(`${API_BASE}/transaction/process`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { "x-token": token } : {}),
+        "x-checkout-origin": "online",
+        "x-tenant-id": tenantId,
+        "x-branch-id": branchId,
+      },
+      body: JSON.stringify(transactionData),
+    });
 
     const result = await response.json();
-    
+
     if (!response.ok) {
-      // Mapeo de errores específicos
       const errorMessages = {
         INSUFFICIENT_FUNDS: "Fondos insuficientes en la tarjeta",
         LOST_CARD: "Tarjeta reportada como perdida",
         STOLEN_CARD: "Tarjeta reportada como robada",
         EXPIRED_CARD: "Tarjeta expirada",
-        GENERIC_DECLINE: "Transacción rechazada",
+        GENERIC_DECLINE: "Transaccion rechazada",
         PROCESSING_ERROR: "Error de procesamiento",
-        "transaction_failed": result.error || "Error al procesar la transacción",
+        transaction_failed: result.error || "Error al procesar la transaccion",
       };
-      
-      const errorMessage = errorMessages[result.errorType] || 
-                          errorMessages[result.errorCode] || 
-                          result.error || 
-                          "Error al procesar el pago";
-      
+
+      const errorMessage =
+        errorMessages[result.errorType] ||
+        errorMessages[result.errorCode] ||
+        result.error ||
+        "Error al procesar el pago";
+
       throw new Error(errorMessage);
     }
 
@@ -130,109 +122,131 @@ export const processTransaction = async (transactionData, setters) => {
   } catch (error) {
     setOrderStatus("failed");
     setPaymentError(error.message);
-    
-    // Sugerencias basadas en el error
+
     const suggestions = {
-      "Fondos insuficientes en la tarjeta": 
-        "Por favor intenta con otra tarjeta o método de pago",
-      "Tarjeta reportada como perdida": 
+      "Fondos insuficientes en la tarjeta":
+        "Por favor intenta con otra tarjeta o metodo de pago",
+      "Tarjeta reportada como perdida":
         "Contacta a tu banco para verificar el estado de tu tarjeta",
-      "Tarjeta reportada como robada": 
+      "Tarjeta reportada como robada":
         "Contacta a tu banco para verificar el estado de tu tarjeta",
-      "Tarjeta expirada": 
-        "Verifica la fecha de expiración de tu tarjeta",
-      "Transacción rechazada": 
-        "Por favor intenta con otra tarjeta o método de pago",
-      "Error de procesamiento": 
-        "Por favor intenta nuevamente o con otro método de pago",
-      "Error al validar productos": 
+      "Tarjeta expirada": "Verifica la fecha de expiracion de tu tarjeta",
+      "Transaccion rechazada":
+        "Por favor intenta con otra tarjeta o metodo de pago",
+      "Error de procesamiento":
+        "Por favor intenta nuevamente o con otro metodo de pago",
+      "Error al validar productos":
         "Por favor ajusta las cantidades en tu carrito o elimina los productos sin stock suficiente",
     };
-    
+
     setPaymentSuggestion(
-      suggestions[error.message] || 
-      "Por favor intenta nuevamente o contacta a soporte"
+      suggestions[error.message] ||
+        "Por favor intenta nuevamente o contacta a soporte"
     );
   } finally {
     setIsProcessing(false);
   }
 };
 
-// Función para construir los datos de transacción
 export const buildTransactionData = (
   isAuthenticated,
   userData,
   cart,
-  shippingMethodId,
+  selectedShipping,
   selectedAddress,
   addressData,
   discountApplied,
-  cardNumber,
-  expiry,
-  cvc,
+  paymentMethod,
+  paymentDetails,
   selectedProvince,
   selectedCanton,
   selectedParish
 ) => {
-  // Determinar la dirección de envío
+  const resolveUserId = () =>
+    String(userData?._id || userData?.uid || userData?.id || userData?.userId || "").trim();
+
+  const resolveVariantId = (item) =>
+    String(item?.sizeId || item?.variantId || item?.priceId || "").trim();
+
   let shippingAddress;
   if (isAuthenticated && selectedAddress) {
     shippingAddress = {
-      provincia: selectedAddress.provincia || selectedProvince,
-      canton: selectedAddress.canton || selectedCanton,
-      parroquia: selectedAddress.parroquia || selectedParish,
-      callePrincipal: selectedAddress.directionPrincipal || selectedAddress.address,
+      provincia: selectedAddress.provincia || selectedProvince || "",
+      canton: selectedAddress.canton || selectedCanton || "",
+      parroquia: selectedAddress.parroquia || selectedParish || "",
+      callePrincipal: selectedAddress.directionPrincipal || selectedAddress.address || "",
       numeroCasa: selectedAddress.nCasa || "",
       referencia: selectedAddress.referencia || "",
-      codigoPostal: selectedAddress.codepostal || addressData.zip,
+      codigoPostal: selectedAddress.codepostal || addressData.zip || "",
     };
   } else {
     shippingAddress = {
-      provincia: selectedProvince,
-      canton: selectedCanton,
-      parroquia: selectedParish,
-      callePrincipal: addressData.address,
+      provincia: selectedProvince || "",
+      canton: selectedCanton || "",
+      parroquia: selectedParish || "",
+      callePrincipal: addressData.address || "",
       numeroCasa: addressData.houseNumber || "",
       referencia: addressData.reference || "",
-      codigoPostal: addressData.zip,
+      codigoPostal: addressData.zip || "",
     };
   }
+
+  const normalizedMethod = String(paymentMethod || "credit-card").trim();
+  const details = paymentDetails && typeof paymentDetails === "object" ? paymentDetails : {};
+
+  const normalizedPaymentDetails =
+    normalizedMethod === "credit-card"
+      ? {
+          cardNumber: String(details.cardNumber || "").trim(),
+          expiry: String(details.expiry || "").trim(),
+          cvc: String(details.cvc || "").trim(),
+          cardholderName: String(
+            details.cardholderName ||
+              (isAuthenticated
+                ? userData?.name
+                : `${addressData.firstName || ""} ${addressData.lastName || ""}`)
+          ).trim(),
+        }
+      : normalizedMethod === "transfer"
+        ? {
+            voucherName: String(details.voucherName || "").trim(),
+            voucherType: String(details.voucherType || "").trim(),
+            voucherSize: Number(details.voucherSize || 0),
+          }
+        : normalizedMethod === "paypal"
+          ? {
+              payerEmail: String(details.payerEmail || userData?.email || addressData.email || "").trim(),
+            }
+          : {
+              source: "wallet",
+            };
 
   return {
     customer: {
       name: isAuthenticated
         ? userData?.name
-        : `${addressData.firstName} ${addressData.lastName}`,
+        : `${addressData.firstName || ""} ${addressData.lastName || ""}`.trim(),
       email: isAuthenticated ? userData?.email : addressData.email,
-      phone: isAuthenticated 
-        ? selectedAddress?.telefono || userData?.phone 
-        : addressData.phone,
-      userId: isAuthenticated ? userData?.uid : null,
+      phone: isAuthenticated ? selectedAddress?.telefono || userData?.phone : addressData.phone,
+      userId: resolveUserId(),
+      idNumber: String(userData?.idNumber || addressData?.idNumber || "").trim(),
     },
     order: {
       items: cart.map((item) => ({
         productId: item.productId,
-        variantId: item.sizeId || "",
-        price: item.price,
-        quantity: item.quantity,
+        variantId: resolveVariantId(item),
+        quantity: Number(item.quantity || 1),
       })),
       shipping: {
-        methodId: shippingMethodId,
+        methodId: selectedShipping?.id,
+        cost: Number(selectedShipping?.costo || 0),
         address: shippingAddress,
-        cost: 0, // Este valor será reemplazado por el backend
       },
+    },
+    payment: {
+      method: normalizedMethod,
+      details: normalizedPaymentDetails,
     },
     discountCode: discountApplied?.code || null,
-    payment: {
-      method: "credit-card",
-      details: {
-        cardNumber,
-        expiry,
-        cvc,
-        cardholderName: isAuthenticated
-          ? userData?.name
-          : `${addressData.firstName} ${addressData.lastName}`,
-      },
-    },
   };
 };

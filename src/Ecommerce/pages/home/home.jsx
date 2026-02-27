@@ -3,7 +3,7 @@ import { ProductCarousel } from "../../components/product-carousel";
 import { CartShop } from "../../components/carshop";
 import { PromoBar } from "../../components/promo-bar";
 import { BannersPromo } from "../../components/BannersPromo";
-import PopularProductCarousel from "../../components/popularCarousel";
+import { PopularProductCarousel } from "../../components/popularCarousel";
 import PopularCategories from "../../components/popular_categories";
 
 export const HomeComponent = () => {

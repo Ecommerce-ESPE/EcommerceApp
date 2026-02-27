@@ -49,9 +49,11 @@ const SearchBox = ({
   onSelectRouteBuilder = (sugg) => `/producto/${encodeURIComponent(sugg?.slug || sugg?.id || "")}`,
   className = "",
   mobile = false,
+  onNavigate,
 }) => {
   const navigate = useNavigate();
   const rootRef = useRef(null);
+  const inputRef = useRef(null);
   const cacheRef = useRef(new Map());
   const abortRef = useRef(null);
   const requestIdRef = useRef(0);
@@ -79,10 +81,12 @@ const SearchBox = ({
     (term) => {
       const normalized = normalizeQuery(term);
       if (!normalized) return;
+      inputRef.current?.blur();
       navigate(buildSearchUrl(onSubmitRoute, normalized));
       setIsOpen(false);
+      onNavigate?.();
     },
-    [navigate, onSubmitRoute]
+    [navigate, onNavigate, onSubmitRoute]
   );
 
   const goToSuggestion = useCallback(
@@ -90,10 +94,12 @@ const SearchBox = ({
       if (!item) return;
       const to = onSelectRouteBuilder(item);
       if (!to) return;
+      inputRef.current?.blur();
       navigate(to);
       setIsOpen(false);
+      onNavigate?.();
     },
-    [navigate, onSelectRouteBuilder]
+    [navigate, onNavigate, onSelectRouteBuilder]
   );
 
   useEffect(() => {
@@ -208,6 +214,7 @@ const SearchBox = ({
       <form onSubmit={onSubmit}>
         <div className="input-group-overlay">
           <input
+            ref={inputRef}
             id={inputId}
             type="text"
             value={query}

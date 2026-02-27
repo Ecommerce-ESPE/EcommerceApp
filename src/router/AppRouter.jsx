@@ -68,6 +68,14 @@ export const AppRouter = () => {
         <Route path="producto/:id" element={<ProductoDetalle />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route
+          path="wishlist"
+          element={
+            <PrivateRoute>
+              <Navigate to="/account/wishlist" replace />
+            </PrivateRoute>
+          }
+        />
         
         <Route 
           path="account/*" 

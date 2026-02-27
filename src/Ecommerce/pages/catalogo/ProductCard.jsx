@@ -1,4 +1,5 @@
 import {useEffect} from "react";
+import WishlistIconButton from "../../components/WishlistIconButton";
 
 const ProductCard = ({
   product,
@@ -69,6 +70,9 @@ const ProductCard = ({
               </span>
             )}
           </a>
+          <div className="card-product-widgets-bottom">
+            <WishlistIconButton itemId={product._id} size="medium" />
+          </div>
         </div>
         <div className="card-body pb-2">
           <h3 className="card-product-title text-truncate mb-2">

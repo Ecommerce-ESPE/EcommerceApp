@@ -45,7 +45,7 @@ export const PromoBar = () => {
       <Swiper
         modules={[Autoplay]}
         autoplay={{ delay: 3000, disableOnInteraction: false }}
-        loop={true}
+        loop={messages.length > 1}
         slidesPerView={1}
       >
         {messages.map((msg) => (

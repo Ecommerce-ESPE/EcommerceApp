@@ -18,8 +18,8 @@ const ActivityTimeline = ({ items }) => {
         </a>
       </div>
       <div className="card-body account-activity-list">
-        {items.map((item) => (
-          <div className="account-activity-item" key={item.id}>
+        {items.map((item, index) => (
+          <div className="account-activity-item" key={item.id || `activity-${index}`}>
             <div className="account-activity-icon">
               <i className={iconMap[item.type] || "fas fa-bolt"}></i>
             </div>

@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
+import QuantityInput from "../../components/QuantityInput";
 const StepReview = ({ cart, updateQuantity, removeFromCart, subtotal }) => {
+  const getCartItemKey = (item, index) =>
+    item?.id || `${item?.productId || "item"}-${item?.sizeId || item?.size || index}`;
+
   return (
     <>
       <h2 className="h4 mb-4">1. Revisión del Pedido</h2>
@@ -19,24 +23,26 @@ const StepReview = ({ cart, updateQuantity, removeFromCart, subtotal }) => {
         </div>
       ) : (
         <div className="bg-secondary rounded mb-5">
-          {cart.map((producto) => (
+          {cart.map((producto, index) => {
+            const itemKey = getCartItemKey(producto, index);
+            const productPath = `/producto/${encodeURIComponent(
+              producto?.slug || producto?.productId || producto?.id || ""
+            )}`;
+            return (
             <div
-              key={producto.id}
+              key={itemKey}
               className="media px-2 px-sm-4 py-4 border-bottom"
             >
-              <a href="shop-single.html" style={{ minWidth: 80 }}>
+              <Link to={productPath} style={{ minWidth: 80 }}>
                 <img src={producto.image} width="80" alt="Producto" />
-              </a>
+              </Link>
               <div className="media-body w-100 pl-3">
                 <div className="d-sm-flex">
                   <div className="pr-sm-3 w-100" style={{ maxWidth: "16rem" }}>
                     <h3 className="font-size-sm mb-3">
-                      <a
-                        href="shop-single.html"
-                        className="nav-link font-weight-bold"
-                      >
+                      <Link to={productPath} className="nav-link font-weight-bold">
                         {producto.name}
-                      </a>
+                      </Link>
                     </h3>
                     {(producto.color || producto.size) && (
                       <ul className="list-unstyled font-size-xs mt-n2 mb-2">
@@ -56,15 +62,9 @@ const StepReview = ({ cart, updateQuantity, removeFromCart, subtotal }) => {
                     )}
                   </div>
                   <div className="d-flex pr-sm-3">
-                    <input
-                      type="number"
-                      className="form-control form-control-sm bg-light mr-3"
-                      style={{ width: "4.5rem" }}
+                    <QuantityInput
                       value={producto.quantity}
-                      min="1"
-                      onChange={(e) =>
-                        updateQuantity(producto.id, parseInt(e.target.value))
-                      }
+                      onCommit={(nextQty) => updateQuantity(itemKey, nextQty)}
                     />
                     <div className="text-nowrap pt-2">
                       <strong>
@@ -75,7 +75,7 @@ const StepReview = ({ cart, updateQuantity, removeFromCart, subtotal }) => {
                   <div className="d-flex align-items-center flex-sm-column text-sm-center ml-sm-auto pt-3 pt-sm-0">
                     <button
                       className="btn btn-outline-primary btn-sm mr-2 mr-sm-0"
-                      onClick={() => removeFromCart(producto.id)}
+                      onClick={() => removeFromCart(itemKey)}
                     >
                       Eliminar
                     </button>
@@ -86,7 +86,8 @@ const StepReview = ({ cart, updateQuantity, removeFromCart, subtotal }) => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="px-3 px-sm-4 py-4 text-right">
             <span className="text-muted">
               Subtotal:

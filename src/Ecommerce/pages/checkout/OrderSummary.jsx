@@ -119,14 +119,13 @@ const OrderSummary = ({
         </div>
       </div>
 
-      {step === 5 && (
+      {step === 4 && (
         <button
           type="button"
           className="btn btn-primary btn-lg btn-block"
           onClick={completeOrder}
           disabled={
             isProcessing ||
-            (!isAuthenticated && step >= 2) ||
             (step === 2 && isAuthenticated && !selectedAddress)
           }
         >

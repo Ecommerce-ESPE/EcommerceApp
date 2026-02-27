@@ -25,9 +25,9 @@ const CheckoutSteps = ({ step, nextStep, prevStep, cart, isAuthenticated, select
         </button>
       ) : (
         <button
-          className="btn btn-success ml-auto d-none d-sm-block"
+          className="btn btn-success ml-auto"
           onClick={completeOrder}
-          disabled={isProcessing || !isAuthenticated || cart.length === 0}
+          disabled={isProcessing || cart.length === 0 || !paymentFormValid}
         >
           {isProcessing ? (
             <>
@@ -35,7 +35,7 @@ const CheckoutSteps = ({ step, nextStep, prevStep, cart, isAuthenticated, select
               Procesando...
             </>
           ) : (
-            "Completar pedido"
+            "Pagar ahora"
           )}
         </button>
       )}

@@ -8,6 +8,7 @@ import OrdersPage from "./pages/OrdersPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import SettingsPage from "./pages/SettingsPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import WishlistPage from "./pages/WishlistPage";
 
 const AccountDashboard = () => {
   return (
@@ -67,15 +68,7 @@ const AccountDashboard = () => {
             />
           }
         />
-        <Route
-          path="wishlist"
-          element={
-            <PlaceholderPage
-              title="Wishlist"
-              description="Tus productos favoritos estaran listos aqui."
-            />
-          }
-        />
+        <Route path="wishlist" element={<WishlistPage />} />
       </Route>
     </Routes>
   );

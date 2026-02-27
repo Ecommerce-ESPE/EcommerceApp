@@ -310,6 +310,9 @@
     }
 
     function productLightboxs() {
+        if (typeof $.fn.lightGallery !== 'function') {
+            return;
+        }
         // console.log("Ligth Box");
         // var product = $('.ps-product--detail');
         // if (product.length > 0) {
@@ -335,24 +338,30 @@
         //     }
         // }
 
-        $('.ps-gallery--image').lightGallery({
-            selector: '.ps-gallery__item',
-            thumbnail: true,
-            share: false,
-            fullScreen: false,
-            autoplay: false,
-            autoplayControls: false,
-            actualSize: false
-        });
+        var imageGalleries = $('.ps-gallery--image');
+        if (imageGalleries.length) {
+            imageGalleries.lightGallery({
+                selector: '.ps-gallery__item',
+                thumbnail: true,
+                share: false,
+                fullScreen: false,
+                autoplay: false,
+                autoplayControls: false,
+                actualSize: false
+            });
+        }
 
-        $('.ps-video').lightGallery({
-            thumbnail: false,
-            share: false,
-            fullScreen: false,
-            autoplay: false,
-            autoplayControls: false,
-            actualSize: false
-        });
+        var videoGalleries = $('.ps-video');
+        if (videoGalleries.length) {
+            videoGalleries.lightGallery({
+                thumbnail: false,
+                share: false,
+                fullScreen: false,
+                autoplay: false,
+                autoplayControls: false,
+                actualSize: false
+            });
+        }
     }
 
     function filterSlider() {

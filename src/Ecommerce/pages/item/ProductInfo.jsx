@@ -1,17 +1,19 @@
-import { useState, useContext, useEffect, useMemo } from "react";
+import { useState, useContext, useEffect, useMemo, useCallback } from "react";
 import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
 import TagChips from "./TagChips";
 import "./ship-return.scoped.css";
 import { API_BASE } from "../../services/api";
+import { useWishlist } from "../../hooks/useWishlist";
 
 const ProductInfo = ({ product }) => {
   const { addToCart, setShowCart } = useContext(CartContext);
+  const { isInWishlist, isMutating, toggleWishlist } = useWishlist();
 
-  const findAvailableOption = () => {
+  const findAvailableOption = useCallback(() => {
     const availableOption = product?.value?.find((v) => v.stock > 0);
     return availableOption ? availableOption._id : product?.value?.[0]?._id || "";
-  };
+  }, [product]);
 
   const [selectedValue, setSelectedValue] = useState(findAvailableOption());
   const [quantity, setQuantity] = useState(1);
@@ -29,7 +31,7 @@ const ProductInfo = ({ product }) => {
       setSelectedValue(findAvailableOption());
       setQuantity(1);
     }
-  }, [product, selectedOption]);
+  }, [findAvailableOption, product, selectedOption]);
 
   useEffect(() => {
     let isMounted = true;
@@ -130,6 +132,8 @@ const ProductInfo = ({ product }) => {
   const brandWebsite = brand?.website || "";
 
   const ctaDisabled = !hasStockAvailable || selectedStock <= 0;
+  const favoriteActive = isInWishlist(product?._id);
+  const favoriteBusy = isMutating(product?._id);
 
   return (
     <div>
@@ -278,12 +282,13 @@ const ProductInfo = ({ product }) => {
 
         <div className="col-lg-4 col-8">
           <button
-            className="btn btn-block btn-outline-primary"
+            className={`btn btn-block ${favoriteActive ? "btn-primary" : "btn-outline-primary"}`}
             type="button"
-            disabled={ctaDisabled}
+            disabled={favoriteBusy}
+            onClick={() => toggleWishlist(product?._id)}
           >
             <i className="cxi-heart mr-2"></i>
-            Favorito
+            {favoriteBusy ? "Actualizando..." : favoriteActive ? "En favoritos" : "Favorito"}
           </button>
         </div>
       </form>

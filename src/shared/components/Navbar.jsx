@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { CartShop } from "../../Ecommerce/components/carshop";
 import { CartContext } from "../../Ecommerce/context/cartContext";
 import { useAuth } from "../../auth/authContext";
@@ -9,6 +9,8 @@ import { notyf } from "../../utils/notifications";
 import { Link } from "react-router-dom";
 import { useStoreSettings } from "../../Ecommerce/context/storeSettingsContext";
 import SearchBox from "./SearchBox";
+import { API_BASE } from "../../Ecommerce/services/api";
+import { useWishlist } from "../../Ecommerce/hooks/useWishlist";
 
 const initialMenuData = {
   mainMenu: [
@@ -104,6 +106,8 @@ export const NavbarComponent = () => {
   const { cart, setShowCart } = useContext(CartContext);
   const navigate = useNavigate();
   const { user, logout, wallet } = useAuth();
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const { total: wishlistTotal } = useWishlist();
   const { settings } = useStoreSettings();
   const business = settings?.business || {};
   const branding = settings?.branding || {};
@@ -122,6 +126,56 @@ export const NavbarComponent = () => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(walletAmount || 0));
+
+  const resolveProfileImage = (rawValue) => {
+    const value = String(rawValue || "").trim();
+    if (!value) return avatar;
+    // "/src/assets/..." is not a public runtime URL in Vite; fallback to bundled asset.
+    if (value.startsWith("/src/")) return avatar;
+    return value;
+  };
+
+  const userCandidates = [
+    user,
+    user?.usuario,
+    user?.user,
+    user?.data?.usuario,
+    user?.data,
+  ].filter(Boolean);
+  const pickFirst = (...keys) => {
+    for (const candidate of userCandidates) {
+      for (const key of keys) {
+        const value = candidate?.[key];
+        if (value != null && String(value).trim() !== "") return value;
+      }
+    }
+    return "";
+  };
+  const buildAssetUrl = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (/^(https?:)?\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+    const apiOrigin = API_BASE.replace(/\/api\/?$/, "");
+    if (raw.startsWith("/")) return `${apiOrigin}${raw}`;
+    return `${apiOrigin}/${raw.replace(/^\/+/, "")}`;
+  };
+  const displayName =
+    pickFirst("nombre", "name", "fullName") ||
+    (pickFirst("email") ? String(pickFirst("email")).split("@")[0] : "");
+  const profileEmail = pickFirst("email");
+  const profileImage = resolveProfileImage(
+    buildAssetUrl(
+      pickFirst(
+        "perfil",
+        "profileUrl",
+        "avatarUrl",
+        "photoUrl",
+        "photo",
+        "image"
+      )
+    )
+  );
+
   // Logout handler
   const handleLogout = () => {
     logout();
@@ -165,7 +219,7 @@ export const NavbarComponent = () => {
                 <li className="nav-item d-lg-block d-none mb-0">
                   <a href="/wishlist" className="nav-tool">
                     <i className="cxi-heart nav-tool-icon"></i>
-                    <span className="nav-tool-label">2</span>
+                    <span className="nav-tool-label">{user ? wishlistTotal : 0}</span>
                   </a>
                 </li>
 
@@ -202,7 +256,7 @@ export const NavbarComponent = () => {
                       >
                         <i className="cxi-profile nav-tool-icon mr-2"></i>
                         <span className="font-size-sm text-nowrap">
-                          {user.nombre || user.name }
+                          {displayName}
                         </span>
                       </a>
 
@@ -215,15 +269,19 @@ export const NavbarComponent = () => {
                         <div className="d-flex align-items-start">
                           <img
                             className="rounded-circle mr-3"
-                            src={user.perfil || avatar} // imagen por defecto si no hay
+                            src={profileImage}
                             alt="Foto de perfil"
                             width="64"
                             height="64"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = avatar;
+                            }}
                           />
                           <div className="ml-2">
-                            <h6 className="mb-1">{user.nombre || user.name }</h6>
+                            <h6 className="mb-1">{displayName}</h6>
                             <p className="mb-2 text-muted small">
-                              {user.email || ""}
+                              {profileEmail}
                             </p>
                             <p className="mb-2 text-muted small font-weight-bold">
                               {walletLabel}
@@ -270,6 +328,18 @@ export const NavbarComponent = () => {
 
                 {/* Toggler Mobile */}
                 <li className="divider-vertical mb-0 d-lg-none d-block"></li>
+                <li className="nav-item mb-0 d-lg-none d-block">
+                  <button
+                    className="nav-tool btn btn-link p-0 border-0"
+                    type="button"
+                    aria-label="Buscar productos"
+                    aria-expanded={mobileSearchOpen}
+                    onClick={() => setMobileSearchOpen((prev) => !prev)}
+                  >
+                    <i className="cxi-search nav-tool-icon"></i>
+                  </button>
+                </li>
+                <li className="divider-vertical mb-0 d-lg-none d-block"></li>
                 <li className="nav-item mb-0">
                   <button
                     className="navbar-toggler mt-n1 mr-n3"
@@ -277,6 +347,7 @@ export const NavbarComponent = () => {
                     data-toggle="collapse"
                     data-target="#navbarCollapse"
                     aria-expanded="false"
+                    onClick={() => setMobileSearchOpen(false)}
                   >
                     <span className="navbar-toggler-icon"></span>
                   </button>
@@ -429,6 +500,21 @@ export const NavbarComponent = () => {
             </nav>
           </div>
         </div>
+        {mobileSearchOpen && (
+          <div className="d-lg-none bg-light border-top">
+            <div className="container px-3 py-2">
+              <SearchBox
+                mobile
+                placeholder="Buscar productos..."
+                onSubmitRoute="/buscar"
+                onSelectRouteBuilder={(sugg) =>
+                  `/producto/${encodeURIComponent(sugg?.slug || sugg?.id || "")}`
+                }
+                onNavigate={() => setMobileSearchOpen(false)}
+              />
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Carrito Modal */}

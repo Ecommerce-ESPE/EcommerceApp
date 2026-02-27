@@ -6,6 +6,7 @@ import { API_BASE } from "../../services/api";
 import PromoBannerTop from "./PromoBannerTop";
 import PromoBannerInline from "./PromoBannerInline";
 import CategoryMiniBanner from "./CategoryMiniBanner";
+import WishlistIconButton from "../../components/WishlistIconButton";
 
 export const CatalogoComponent = () => {
   const {
@@ -577,13 +578,7 @@ export const CatalogoComponent = () => {
                         </div>
                       </div>
                       <div className="card-product-widgets-bottom">
-                        <a
-                          href="#"
-                          className="btn-wishlist ml-auto"
-                          data-toggle="tooltip"
-                          data-placement="left"
-                          title="Añadir a favoritos"
-                        ></a>
+                        <WishlistIconButton itemId={prod._id} size="medium" />
                       </div>
                     </div>
                     <div className="card-body pb-2">
@@ -671,3 +666,6 @@ export const CatalogoComponent = () => {
     </section>
   );
 };
+
+
+
