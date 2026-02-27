@@ -8,6 +8,7 @@ import avatar from "../../assets/img/ecommerce/home/categories/03.jpg";
 import { notyf } from "../../utils/notifications";
 import { Link } from "react-router-dom";
 import { useStoreSettings } from "../../Ecommerce/context/storeSettingsContext";
+import SearchBox from "./SearchBox";
 
 const initialMenuData = {
   mainMenu: [
@@ -148,16 +149,13 @@ export const NavbarComponent = () => {
               className="input-group-overlay ml-4 d-lg-block d-none order-lg-3"
               style={{ maxWidth: "21rem" }}
             >
-              <input
-                className="form-control appended-form-control"
-                type="text"
+              <SearchBox
                 placeholder="Buscar productos..."
+                onSubmitRoute="/buscar"
+                onSelectRouteBuilder={(sugg) =>
+                  `/producto/${encodeURIComponent(sugg?.slug || sugg?.id || "")}`
+                }
               />
-              <div className="input-group-append-overlay">
-                <span className="input-group-text">
-                  <i className="cxi-search lead align-middle"></i>
-                </span>
-              </div>
             </div>
 
             {/* Iconos derecha */}
@@ -292,16 +290,14 @@ export const NavbarComponent = () => {
               id="navbarCollapse"
             >
               <div className="input-group-overlay form-group mb-0 d-lg-none d-block">
-                <input
-                  type="text"
-                  className="form-control prepended-form-control rounded-0 border-0"
+                <SearchBox
+                  mobile
                   placeholder="Buscar productos..."
+                  onSubmitRoute="/buscar"
+                  onSelectRouteBuilder={(sugg) =>
+                    `/producto/${encodeURIComponent(sugg?.slug || sugg?.id || "")}`
+                  }
                 />
-                <div className="input-group-prepend-overlay">
-                  <span className="input-group-text">
-                    <i className="cxi-search font-size-lg align-middle mt-n1"></i>
-                  </span>
-                </div>
               </div>
 
               <ul className="navbar-nav mr-auto">

@@ -15,6 +15,7 @@ import AccountDashboard from "../Ecommerce/account/AccountDashboard";
 import {PageNotFound} from '../shared/index'; // Importamos la pagina 404
 import { RegisterPage } from "../auth/register/register";
 import PromoResolvePage from "../Ecommerce/pages/promo/PromoResolvePage";
+import SearchPage from "../Ecommerce/pages/search/SearchPage";
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -59,6 +60,8 @@ export const AppRouter = () => {
         <Route path="home" element={<HomeComponent />} />
         <Route path="shop/:section/:slug" element={<PromoResolvePage />} />
         <Route path="shop" element={<CatalogComponent />} />
+        <Route path="buscar" element={<SearchPage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="catalog" element={<CatalogComponent />} />
         <Route path="catalogo" element={<CatalogoComponent />} />
         <Route path="checkout" element={<Checkout />} />

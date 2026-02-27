@@ -76,6 +76,16 @@ const ProductCard = ({
               {product.nameProduct}
             </a>
           </h3>
+          {(product.brandName || (Array.isArray(product.tagNames) && product.tagNames.length > 0)) && (
+            <div className="mb-2">
+              {product.brandName ? (
+                <span className="badge badge-light mr-2">Marca: {product.brandName}</span>
+              ) : null}
+              {Array.isArray(product.tagNames) && product.tagNames.length > 0 ? (
+                <small className="text-muted">#{product.tagNames.slice(0, 2).join(" #")}</small>
+              ) : null}
+            </div>
+          )}
           <div className="d-flex align-items-center">
             {hasDiscount ? (
               <>

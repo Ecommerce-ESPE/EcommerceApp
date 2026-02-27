@@ -2,6 +2,13 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { API_BASE } from "../../services/api";
 import {
+  normalizeBrandOption,
+  normalizeTagOption,
+  resolveBrandName,
+  resolveTagNames,
+  sanitizeProduct,
+} from "../../utils/catalogDisplay";
+import {
   buildCatalogCrumbs,
   resolveBrandByToken,
   resolveCategoryByToken,
@@ -62,7 +69,7 @@ export const useCatalog = () => {
   const [categories, setCategories] = useState([]);
   const [brandsCatalog, setBrandsCatalog] = useState([]);
   const [tagsCatalog, setTagsCatalog] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [rawProducts, setRawProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterError, setFilterError] = useState("");
 
@@ -145,6 +152,16 @@ export const useCatalog = () => {
     [searchState.categoryToken, searchState.subcategoryToken, searchState.brandToken, selectedCategory, selectedSubcategory, selectedBrand]
   );
 
+  const products = useMemo(
+    () =>
+      rawProducts.map((item) => ({
+        ...item,
+        brandName: resolveBrandName(item?.brand, brandsCatalog),
+        tagNames: resolveTagNames(item?.tags, tagsCatalog),
+      })),
+    [rawProducts, brandsCatalog, tagsCatalog]
+  );
+
   const fetchCategories = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/category`);
@@ -161,7 +178,11 @@ export const useCatalog = () => {
       const response = await fetch(`${API_BASE}/tags`);
       const data = await response.json();
       const rawTags = Array.isArray(data) ? data : data?.items || data?.tags || [];
-      setTagsCatalog(rawTags.filter((tag) => tag?.active !== false));
+      const parsedTags = rawTags
+        .filter((tag) => tag?.active !== false)
+        .map(normalizeTagOption)
+        .filter(Boolean);
+      setTagsCatalog(parsedTags);
     } catch (error) {
       console.error("Error fetching tags:", error);
       setTagsCatalog([]);
@@ -169,23 +190,6 @@ export const useCatalog = () => {
   }, []);
 
   const fetchBrands = useCallback(async () => {
-    const toBrandOption = (raw) => {
-      if (!raw) return null;
-      if (typeof raw === "string") {
-        const normalized = raw.trim();
-        if (!normalized) return null;
-        return { slug: normalized, name: normalized };
-      }
-
-      const slug = String(raw.slug || raw.code || raw.name || "").trim();
-      const name = String(raw.name || raw.label || raw.slug || "").trim();
-      if (!slug && !name) return null;
-      return {
-        slug: slug || name,
-        name: name || slug,
-      };
-    };
-
     try {
       const response = await fetch(`${API_BASE}/brands`);
       if (response.ok) {
@@ -194,7 +198,7 @@ export const useCatalog = () => {
           ? data
           : data?.items || data?.brands || data?.data || [];
         const parsed = rawBrands
-          .map(toBrandOption)
+          .map(normalizeBrandOption)
           .filter(Boolean)
           .reduce((acc, entry) => {
             if (!acc.some((it) => it.slug.toLowerCase() === entry.slug.toLowerCase())) {
@@ -219,7 +223,7 @@ export const useCatalog = () => {
         .filter(Boolean)
         .reduce((acc, value) => {
           if (!acc.some((it) => it.slug.toLowerCase() === value.toLowerCase())) {
-            acc.push({ slug: value, name: value });
+            acc.push({ id: "", slug: value, name: value });
           }
           return acc;
         }, [])
@@ -259,15 +263,18 @@ export const useCatalog = () => {
           if (response.status === 400) {
             setFilterError("Especificacion invalida.");
           }
-          setProducts([]);
+          setRawProducts([]);
           return;
         }
 
-        setProducts(Array.isArray(data?.items) ? data.items : []);
+        const safeItems = (Array.isArray(data?.items) ? data.items : []).map((item) =>
+          sanitizeProduct(item)
+        );
+        setRawProducts(safeItems);
       } catch (error) {
         if (error?.name === "AbortError") return;
         console.error("Error fetching products:", error);
-        setProducts([]);
+        setRawProducts([]);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
