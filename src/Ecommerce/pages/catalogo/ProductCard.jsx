@@ -1,5 +1,10 @@
 import {useEffect} from "react";
 import WishlistIconButton from "../../components/WishlistIconButton";
+import {
+  formatProductPrice,
+  getProductPricingSummary,
+  getVariantPricing,
+} from "../../utils/productPricing";
 
 const ProductCard = ({
   product,
@@ -8,25 +13,17 @@ const ProductCard = ({
   onAddToCart
 }) => {
   // Verificar promoción activa
-  const now = new Date();
-  const startDate = product.promotion?.startDate ? new Date(product.promotion.startDate) : null;
-  const endDate = product.promotion?.endDate ? new Date(product.promotion.endDate) : null;
-  const isPromoActive = product.promotion?.active && 
-                        startDate && endDate &&
-                        now >= startDate && now <= endDate;
-  const promoPercent = product.promotion?.percentage;
-
-  // Precio seleccionado
-  const size = selectedSize || (product.value?.[0] ? product.value[0] : null);
-  
-  // Determinar si hay descuento aplicable
-  const hasDiscount = isPromoActive && 
-                     size?.discountPrice && 
-                     size.discountPrice < size.originalPrice;
-
-  // Precio a mostrar y enviar al carrito
-  const displayPrice = hasDiscount ? size?.discountPrice : size?.originalPrice;
-  const originalPrice = size?.originalPrice;
+  const fallbackSize =
+    product.value?.find((val) => val.stock > 0) ||
+    product.value?.[0] ||
+    null;
+  const size = selectedSize || fallbackSize;
+  const selectedPricing = getVariantPricing(selectedSize);
+  const summaryPricing = getProductPricingSummary(product);
+  const activePricing = selectedSize ? selectedPricing : summaryPricing;
+  const hasDiscount = activePricing.hasDiscount;
+  const promoPercent =
+    summaryPricing.percentage > 0 ? summaryPricing.percentage : selectedPricing.percentage;
 
   // Seleccionar el tamaño por defecto si no hay uno seleccionado
   useEffect(() => {
@@ -44,7 +41,7 @@ const ProductCard = ({
 
 
   // Verificar si el stock del tamaño seleccionado es 0
-  const isOutOfStock = selectedSize?.stock === 0;
+  const isOutOfStock = size?.stock === 0;
   
   return (
     <div className="col pb-sm-2 mb-grid-gutter">
@@ -56,7 +53,7 @@ const ProductCard = ({
               alt={product.nameProduct} 
               className="img-fluid"
             />
-            {isPromoActive && (
+            {promoPercent > 0 && (
               <span
                 className="badge product-badge badge-danger"
                 style={{
@@ -94,22 +91,22 @@ const ProductCard = ({
             {hasDiscount ? (
               <>
                 <span className="h5 d-inline-block mb-0 text-danger">
-                  ${displayPrice?.toFixed(2) || 'N/A'}
+                  ${formatProductPrice(activePricing.display)}
                 </span>
                 <span className="text-muted ml-2">
-                  <del>${originalPrice?.toFixed(2)}</del>
+                  <del>${formatProductPrice(activePricing.original)}</del>
                 </span>
               </>
             ) : (
               <span className="h5 d-inline-block mb-0">
-                ${displayPrice?.toFixed(2) || 'N/A'}
+                ${formatProductPrice(activePricing.display)}
               </span>
             )}
           </div>
           {/* Mostrar stock del tamaño seleccionado */}
           <div className="mt-2">
             <small className="text-muted">
-              Stock: {selectedSize?.stock ?? 'N/A'}
+              Stock: {size?.stock ?? 'N/A'}
             </small>
           </div>
         </div>

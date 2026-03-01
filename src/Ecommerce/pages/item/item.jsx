@@ -12,6 +12,7 @@ import { buildProductCrumbs } from "../catalogo/catalogBreadcrumbs";
 
 import { API_BASE } from "../../services/api";
 import SEOProduct from "../../seo/SEOProduct";
+import { getProductPricingSummary } from "../../utils/productPricing";
 const ProductPage = ({ addToCart }) => {
   const { id } = useParams();
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -66,6 +67,8 @@ const ProductPage = ({ addToCart }) => {
     return <div className="container py-5 text-danger">{error}</div>;
   }
 
+  const seoPricing = getProductPricingSummary(selectedProduct);
+
   return (
     <>
       <SEOProduct
@@ -77,7 +80,7 @@ const ProductPage = ({ addToCart }) => {
           sku: selectedProduct.sku,
           brand: selectedProduct.brand || "N/A",
           currency: "USD",
-          price: selectedProduct.value[0]?.originalPrice || 0,
+          price: seoPricing.display || 0,
           stock:  selectedProduct.value.reduce((acc, v) => acc + (v.stock || 0), 0),
         }}
       />

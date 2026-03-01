@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import master from "/assets/master-card.jpg";
 
+const getStoredToken = () => {
+  if (typeof window === "undefined") return "";
+  return (
+    window.localStorage.getItem("token") ||
+    window.sessionStorage.getItem("token") ||
+    ""
+  );
+};
+
 const StepPayment = ({
   cardNumber,
   setCardNumber,
@@ -25,6 +34,15 @@ const StepPayment = ({
   const [voucherPreview, setVoucherPreview] = useState(null);
 
   const selectedMethod = paymentMethod || "credit-card";
+  const hasSession = Boolean(getStoredToken());
+  const canUseCredits = hasSession;
+  const hasEnoughCredits = Number(total || 0) <= Number(userData?.credits || 0);
+
+  useEffect(() => {
+    if (selectedMethod === "credits" && !canUseCredits) {
+      setPaymentMethod("credit-card");
+    }
+  }, [selectedMethod, canUseCredits, setPaymentMethod]);
 
   useEffect(() => {
     if (voucherFile) {
@@ -101,10 +119,10 @@ const StepPayment = ({
         isValid = !!voucherFile;
         break;
       case "credits":
-        isValid = Number(total || 0) <= Number(userData?.credits || 0);
+        isValid = canUseCredits && hasEnoughCredits;
         break;
       case "paypal":
-        isValid = Boolean(isAuthenticated && userData?.email);
+        isValid = isAuthenticated ? Boolean(userData?.email) : true;
         break;
       default:
         isValid = false;
@@ -112,7 +130,19 @@ const StepPayment = ({
 
     setPaymentFormValid((prev) => (prev === isValid ? prev : isValid));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMethod, cardNumber, expiry, cvc, voucherFile, total, userData?.credits, isAuthenticated, userData?.email]);
+  }, [
+    selectedMethod,
+    cardNumber,
+    expiry,
+    cvc,
+    voucherFile,
+    total,
+    userData?.credits,
+    isAuthenticated,
+    userData?.email,
+    canUseCredits,
+    hasEnoughCredits,
+  ]);
 
   const derivedPaymentDetails = useMemo(() => {
     if (selectedMethod === "credit-card") {
@@ -133,7 +163,7 @@ const StepPayment = ({
     }
 
     if (selectedMethod === "credits") {
-      return { source: "wallet" };
+      return { source: "credits" };
     }
 
     if (selectedMethod === "paypal") {
@@ -246,7 +276,9 @@ const StepPayment = ({
       ),
       content: (
         <div className="card-body pt-3 pb-0">
-          {Number(userData?.credits || 0) >= Number(total || 0) ? (
+          {!canUseCredits ? (
+            <p className="text-warning">Inicia sesion para usar tus creditos.</p>
+          ) : hasEnoughCredits ? (
             <>
               <p className="text-success">Creditos suficientes para este pedido</p>
               <p>Se descontara ${formatCurrency(total)} de tu credito.</p>
@@ -268,7 +300,7 @@ const StepPayment = ({
           {isAuthenticated && userData?.email ? (
             <p>Se usara tu correo <strong>{userData.email}</strong> para continuar con PayPal.</p>
           ) : (
-            <p className="text-danger">Debes iniciar sesion para usar PayPal.</p>
+            <p>Se usara el correo del checkout para continuar con PayPal.</p>
           )}
         </div>
       ),
@@ -291,6 +323,7 @@ const StepPayment = ({
                   id={method.id}
                   name="payment"
                   checked={selectedMethod === method.id}
+                  disabled={method.id === "credits" && !canUseCredits}
                   onChange={() => setPaymentMethod(method.id)}
                 />
                 <label htmlFor={method.id} className="custom-control-label d-flex align-items-center">

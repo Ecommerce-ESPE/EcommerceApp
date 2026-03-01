@@ -2,6 +2,14 @@ import { API_BASE } from "./api";
 
 // Servicio para aplicar descuentos
 
+const getStoredToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+
+const redirectToLogin = () => {
+  if (typeof window === "undefined") return;
+  window.location.assign("/login");
+};
+
 const getPriceByPriceId = (priceId, cart) => {
   for (const item of cart) {
     const variant = item.variants?.find((v) => v._id === priceId);
@@ -74,7 +82,15 @@ export const processTransaction = async (transactionData, setters, meta = {}) =>
   setPaymentSuggestion("");
 
   try {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
+    const isCreditsPayment = String(transactionData?.payment?.method || "").trim() === "credits";
+
+    if (isCreditsPayment && !token) {
+      const authError = new Error("Debes iniciar sesion para pagar con creditos");
+      authError.status = 401;
+      throw authError;
+    }
+
     const response = await fetch(`${API_BASE}/transaction/process`, {
       method: "POST",
       headers: {
@@ -90,6 +106,34 @@ export const processTransaction = async (transactionData, setters, meta = {}) =>
     const result = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401) {
+        const authError = new Error("Tu sesion expiro o no has iniciado sesion.");
+        authError.status = 401;
+        throw authError;
+      }
+
+      if (response.status === 403) {
+        const ownershipError = new Error(
+          "No puedes usar creditos para una orden que no te pertenece."
+        );
+        ownershipError.status = 403;
+        throw ownershipError;
+      }
+
+      if (response.status === 404) {
+        const notFoundError = new Error("Orden no encontrada");
+        notFoundError.status = 404;
+        throw notFoundError;
+      }
+
+      if (response.status === 400) {
+        const badRequestError = new Error(
+          result?.message || result?.error || "Solicitud invalida"
+        );
+        badRequestError.status = 400;
+        throw badRequestError;
+      }
+
       const errorMessages = {
         INSUFFICIENT_FUNDS: "Fondos insuficientes en la tarjeta",
         LOST_CARD: "Tarjeta reportada como perdida",
@@ -123,6 +167,14 @@ export const processTransaction = async (transactionData, setters, meta = {}) =>
     setOrderStatus("failed");
     setPaymentError(error.message);
 
+    if (error?.status === 401) {
+      setPaymentSuggestion("Inicia sesion para continuar con el pago.");
+      const onAuthRequired =
+        typeof meta?.onAuthRequired === "function" ? meta.onAuthRequired : redirectToLogin;
+      onAuthRequired();
+      return;
+    }
+
     const suggestions = {
       "Fondos insuficientes en la tarjeta":
         "Por favor intenta con otra tarjeta o metodo de pago",
@@ -137,6 +189,12 @@ export const processTransaction = async (transactionData, setters, meta = {}) =>
         "Por favor intenta nuevamente o con otro metodo de pago",
       "Error al validar productos":
         "Por favor ajusta las cantidades en tu carrito o elimina los productos sin stock suficiente",
+      "No puedes usar creditos para una orden que no te pertenece.":
+        "Verifica que la orden te pertenezca antes de usar tus creditos.",
+      "Orden no encontrada":
+        "Revisa el pedido e intenta nuevamente.",
+      "Solicitud invalida":
+        "Verifica los datos enviados e intenta nuevamente.",
     };
 
     setPaymentSuggestion(
@@ -218,8 +276,10 @@ export const buildTransactionData = (
               payerEmail: String(details.payerEmail || userData?.email || addressData.email || "").trim(),
             }
           : {
-              source: "wallet",
+              source: "credits",
             };
+
+  const resolvedUserId = resolveUserId();
 
   return {
     customer: {
@@ -228,7 +288,7 @@ export const buildTransactionData = (
         : `${addressData.firstName || ""} ${addressData.lastName || ""}`.trim(),
       email: isAuthenticated ? userData?.email : addressData.email,
       phone: isAuthenticated ? selectedAddress?.telefono || userData?.phone : addressData.phone,
-      userId: resolveUserId(),
+      ...(resolvedUserId ? { userId: resolvedUserId } : {}),
       idNumber: String(userData?.idNumber || addressData?.idNumber || "").trim(),
     },
     order: {

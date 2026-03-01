@@ -5,6 +5,11 @@ import TagChips from "./TagChips";
 import "./ship-return.scoped.css";
 import { API_BASE } from "../../services/api";
 import { useWishlist } from "../../hooks/useWishlist";
+import {
+  formatProductPrice,
+  getProductPricingSummary,
+  getVariantPricing,
+} from "../../utils/productPricing";
 
 const ProductInfo = ({ product }) => {
   const { addToCart, setShowCart } = useContext(CartContext);
@@ -84,7 +89,7 @@ const ProductInfo = ({ product }) => {
       return;
     }
 
-    const price = selectedOption.discountPrice ?? selectedOption.originalPrice ?? 0;
+    const price = getVariantPricing(selectedOption).display ?? 0;
 
     const cartItem = {
       productId: product._id,
@@ -109,20 +114,18 @@ const ProductInfo = ({ product }) => {
     });
   };
 
-  const now = new Date();
-  const promo = product?.promotion;
-  const promoActive =
-    promo?.active &&
-    new Date(promo.startDate) <= now &&
-    now <= new Date(promo.endDate);
-
   const hasStockAvailable = product?.value?.some((v) => v.stock > 0);
   const selectedStock = selectedOption?.stock ?? 0;
-  const baseOriginal = selectedOption?.originalPrice ?? product?.pricing?.original ?? 0;
-  const baseDiscount = selectedOption?.discountPrice ?? product?.pricing?.promo ?? null;
-  const showPromo = promoActive && baseDiscount != null;
-  const displayPrice = showPromo ? baseDiscount : baseOriginal;
-  const savings = showPromo ? Math.max(0, baseOriginal - baseDiscount) : 0;
+  const selectedPricing = getVariantPricing(selectedOption);
+  const summaryPricing = getProductPricingSummary(product);
+  const activePricing = selectedOption ? selectedPricing : summaryPricing;
+  const displayPrice = activePricing.display ?? 0;
+  const showPromo = activePricing.hasDiscount;
+  const promoPercent =
+    summaryPricing.percentage > 0 ? summaryPricing.percentage : selectedPricing.percentage;
+  const savings = showPromo
+    ? Math.max(0, (activePricing.original ?? 0) - displayPrice)
+    : 0;
 
   const brand =
     product?.brand && typeof product.brand === "object" ? product.brand : {};
@@ -175,15 +178,17 @@ const ProductInfo = ({ product }) => {
           {hasStockAvailable ? (
             <>
               <div className="d-flex align-items-end flex-wrap">
-                <span className="h2 d-inline-block mb-0 text-danger">
-                  ${displayPrice.toFixed(2)}
+                <span className={`h2 d-inline-block mb-0 ${showPromo ? "text-danger" : ""}`}>
+                  ${formatProductPrice(displayPrice)}
                 </span>
-                {showPromo && baseOriginal > displayPrice && (
-                  <del className="ml-2 text-muted">${baseOriginal.toFixed(2)}</del>
+                {showPromo && activePricing.original > displayPrice && (
+                  <del className="ml-2 text-muted">
+                    ${formatProductPrice(activePricing.original)}
+                  </del>
                 )}
-                {showPromo && (
+                {promoPercent > 0 && (
                   <span className="badge badge-danger ml-2">
-                    -{promo?.percentage}%
+                    -{promoPercent}%
                   </span>
                 )}
               </div>
@@ -300,11 +305,13 @@ const ProductInfo = ({ product }) => {
         </div>
       )}
 
-      {showPromo && hasStockAvailable && (
+      {promoPercent > 0 && hasStockAvailable && (
         <div className="alert alert-info mt-4">
           <strong>Oferta especial!</strong> Descuento del{" "}
-          <span className="font-weight-bold">{promo?.percentage}%</span> valido
-          hasta el {new Date(promo.endDate).toLocaleDateString()}.
+          <span className="font-weight-bold">{promoPercent}%</span>
+          {product?.promotion?.endDate
+            ? ` valido hasta el ${new Date(product.promotion.endDate).toLocaleDateString()}.`
+            : "."}
         </div>
       )}
 

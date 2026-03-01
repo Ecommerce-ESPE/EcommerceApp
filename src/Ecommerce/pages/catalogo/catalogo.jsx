@@ -7,6 +7,11 @@ import PromoBannerTop from "./PromoBannerTop";
 import PromoBannerInline from "./PromoBannerInline";
 import CategoryMiniBanner from "./CategoryMiniBanner";
 import WishlistIconButton from "../../components/WishlistIconButton";
+import {
+  formatProductPrice,
+  getProductPricingSummary,
+  getVariantPricing,
+} from "../../utils/productPricing";
 
 export const CatalogoComponent = () => {
   const {
@@ -181,7 +186,7 @@ export const CatalogoComponent = () => {
       productId: product._id,
       name: product.nameProduct,
       image: product.banner || "https://via.placeholder.com/300",
-      price: selectedSize.price,
+      price: getVariantPricing(selectedSize).display ?? 0,
       size: selectedSize.size,
       sizeId: sizeId,
       quantity: 1,
@@ -546,6 +551,13 @@ export const CatalogoComponent = () => {
                 prod.value && prod.value.length > 0
                   ? prod.value.find((v) => v._id === selectedSize)
                   : null;
+              const selectedPricing = getVariantPricing(selectedValue);
+              const summaryPricing = getProductPricingSummary(prod);
+              const activePricing = selectedValue ? selectedPricing : summaryPricing;
+              const promoPercent =
+                summaryPricing.percentage > 0
+                  ? summaryPricing.percentage
+                  : selectedPricing.percentage;
 
               return (
                 <div className="col pb-sm-2 mb-grid-gutter" key={prod._id}>
@@ -588,13 +600,32 @@ export const CatalogoComponent = () => {
                         </a>
                       </h3>
                       <div className="d-flex align-items-center">
-                        <span className="h5 d-inline-block mb-0">
-                          {selectedValue
-                            ? `$${selectedValue.price}`
-                            : prod.value && prod.value.length > 0
-                            ? `$${Math.min(...prod.value.map((v) => v.price))}`
-                            : "N/A"}
-                        </span>
+                        {activePricing.hasDiscount ? (
+                          <>
+                            <span className="h5 d-inline-block mb-0 text-danger">
+                              ${formatProductPrice(activePricing.display)}
+                            </span>
+                            <span className="text-muted ml-2">
+                              <del>${formatProductPrice(activePricing.original)}</del>
+                            </span>
+                            {promoPercent > 0 && (
+                              <span className="badge badge-danger ml-2">
+                                -{promoPercent}%
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="h5 d-inline-block mb-0">
+                              ${formatProductPrice(activePricing.display)}
+                            </span>
+                            {promoPercent > 0 && (
+                              <span className="badge badge-danger ml-2">
+                                -{promoPercent}%
+                              </span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="card-footer">

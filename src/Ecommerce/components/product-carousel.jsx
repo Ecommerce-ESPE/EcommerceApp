@@ -7,6 +7,10 @@ import "swiper/css/pagination";
 import { API_BASE } from "../services/api";
 import WishlistIconButton from "./WishlistIconButton";
 import "./ProductCarousel.css";
+import {
+  formatProductPrice,
+  getProductPricingSummary,
+} from "../utils/productPricing";
 
 export const ProductCarousel = () => {
   const [products, setProducts] = useState([]);
@@ -18,7 +22,6 @@ export const ProductCarousel = () => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
-        const now = new Date();
         const response = await fetch(API_BASE + "/utils/recently-added");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -26,27 +29,7 @@ export const ProductCarousel = () => {
         const data = await response.json();
         if (data.ok && data.items && data.items.length > 0) {
           const mappedProducts = data.items.map((item) => {
-            const promo = item.promotion;
-            const promoActive =
-              promo?.active &&
-              new Date(promo.startDate) <= now &&
-              now <= new Date(promo.endDate);
-
-            const bestVariant = item.value.reduce((best, variant) => {
-              const price =
-                promoActive && variant.discountPrice != null
-                  ? variant.discountPrice
-                  : variant.originalPrice;
-
-              if (!best || price < best.price) {
-                return {
-                  originalPrice: variant.originalPrice,
-                  discountPrice: promoActive ? variant.discountPrice : null,
-                  price,
-                };
-              }
-              return best;
-            }, null);
+            const pricing = getProductPricingSummary(item);
 
             return {
               id: item._id,
@@ -54,10 +37,11 @@ export const ProductCarousel = () => {
               title: item.nameProduct,
               rating: item.rating,
               link: `/producto/${item.slug || item._id}`,
-              price: bestVariant.price,
-              originalPrice: bestVariant.originalPrice,
-              discountPrice: bestVariant.discountPrice,
-              promoPercentage: promoActive ? promo?.percentage : null,
+              price: pricing.display,
+              originalPrice: pricing.original,
+              discountPrice: pricing.discount,
+              hasDiscount: pricing.hasDiscount,
+              promoPercentage: pricing.percentage,
             };
           });
 
@@ -128,7 +112,7 @@ export const ProductCarousel = () => {
                 </a>
 
                 <div className="card-product-widgets-top">
-                  {product.promoPercentage && (
+                  {product.promoPercentage > 0 && (
                     <span className="badge product-badge badge-danger">-{product.promoPercentage}%</span>
                   )}
                   {product.rating > 0 && (
@@ -156,12 +140,12 @@ export const ProductCarousel = () => {
                 </h3>
 
                 <div className="d-flex align-items-center">
-                  <span className={`h5 d-inline-block mb-0 ${product.discountPrice ? "text-danger" : ""}`}>
-                    ${product.price.toFixed(2)}
+                  <span className={`h5 d-inline-block mb-0 ${product.hasDiscount ? "text-danger" : ""}`}>
+                    ${formatProductPrice(product.price)}
                   </span>
-                  {product.discountPrice && (
+                  {product.hasDiscount && (
                     <del className="d-inline-block ml-2 pl-1 text-muted">
-                      ${product.originalPrice.toFixed(2)}
+                      ${formatProductPrice(product.originalPrice)}
                     </del>
                   )}
                 </div>

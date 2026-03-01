@@ -43,6 +43,20 @@ const clearCheckoutDraft = () => {
   }
 };
 
+const getStoredToken = () => {
+  if (typeof window === "undefined") return "";
+  return (
+    window.localStorage.getItem("token") ||
+    window.sessionStorage.getItem("token") ||
+    ""
+  );
+};
+
+const redirectToLogin = () => {
+  if (typeof window === "undefined") return;
+  window.location.assign("/login");
+};
+
 export const useCheckout = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } =
     useContext(CartContext);
@@ -160,7 +174,7 @@ export const useCheckout = () => {
 
   // CARGAR DATOS DEL USUARIO Y DIRECCIONES AL INICIAR
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
     setIsAuthenticated(!!token);
 
     const fetchUserData = async () => {
@@ -344,7 +358,7 @@ export const useCheckout = () => {
 
   const saveNewAddress = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getStoredToken();
       if (!token) throw new Error("No autenticado");
 
       if (
@@ -503,8 +517,11 @@ export const useCheckout = () => {
   };
 
   const completeOrder = async () => {
-    if (!isAuthenticated) {
-      notyf.error("Debes iniciar sesion para completar el pedido");
+    const token = getStoredToken();
+
+    if (paymentMethod === "credits" && !token) {
+      notyf.error("Inicia sesion para usar tus creditos");
+      redirectToLogin();
       return;
     }
 
@@ -515,14 +532,6 @@ export const useCheckout = () => {
 
     if (!paymentFormValid) {
       notyf.error("Completa correctamente el metodo de pago");
-      return;
-    }
-
-    const userId = String(
-      userData?._id || userData?.uid || userData?.id || userData?.userId || ""
-    ).trim();
-    if (!userId) {
-      notyf.error("No se pudo identificar el usuario para el checkout");
       return;
     }
 
@@ -565,6 +574,7 @@ export const useCheckout = () => {
         settings?.tenant?.id ||
         "DEFAULT",
       branchId: settings?.branchId || settings?.branch?._id || settings?.branch?.id || "DEFAULT",
+      onAuthRequired: redirectToLogin,
     });
   };
 

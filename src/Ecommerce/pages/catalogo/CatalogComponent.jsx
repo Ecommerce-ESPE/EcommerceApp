@@ -8,6 +8,7 @@ import Toolbar from "./Toolbar";
 import { CartShop } from "../../components/carshop";
 import { Helmet } from "@dr.pogodin/react-helmet";
 import CatalogBreadcrumbs from "./CatalogBreadcrumbs.jsx";
+import { getVariantPricing } from "../../utils/productPricing";
 
 const CatalogComponent = () => {
   const {
@@ -50,18 +51,7 @@ const CatalogComponent = () => {
     const size = product.value?.find((v) => v._id === sizeId);
     if (!size) return notyf.error("Tamaño no disponible");
 
-    const now = new Date();
-    const startDate = new Date(product.promotion?.startDate);
-    const endDate = new Date(product.promotion?.endDate);
-    const isPromoActive =
-      product.promotion?.active && now >= startDate && now <= endDate;
-
-    const price =
-      isPromoActive &&
-      size.discountPrice &&
-      size.discountPrice < size.originalPrice
-        ? size.discountPrice
-        : size.originalPrice;
+    const price = getVariantPricing(size).display ?? 0;
 
     contextAddToCart({
       id: `${product._id}-${sizeId}`,
