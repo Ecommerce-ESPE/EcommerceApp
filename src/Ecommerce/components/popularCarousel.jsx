@@ -7,6 +7,10 @@ import "swiper/css/pagination";
 import { API_BASE } from "../services/api";
 import WishlistIconButton from "./WishlistIconButton";
 import "./ProductCarousel.css";
+import {
+  formatProductPrice,
+  getProductPricingSummary,
+} from "../utils/productPricing";
 
 export const PopularProductCarousel = () => {
   const [products, setProducts] = useState([]);
@@ -24,54 +28,8 @@ export const PopularProductCarousel = () => {
         }
         const data = await response.json();
         if (data.ok && data.items && data.items.length > 0) {
-          const now = new Date();
           const mappedProducts = data.items.map((item) => {
-            const promo = item.promotion;
-            const promoActive =
-              promo?.active &&
-              new Date(promo.startDate) <= now &&
-              now <= new Date(promo.endDate);
-
-            const safeNumber = (value) => {
-              const num = Number(value);
-              return Number.isFinite(num) ? num : null;
-            };
-
-            const bestVariant = (item.value || []).reduce((best, variant) => {
-              const originalPrice = safeNumber(variant.originalPrice);
-              const rawDiscount = safeNumber(variant.discountPrice);
-              const promoPercent = safeNumber(promo?.percentage);
-              const computedDiscount =
-                promoActive &&
-                rawDiscount == null &&
-                promoPercent != null &&
-                originalPrice != null
-                  ? originalPrice * (1 - promoPercent / 100)
-                  : null;
-              const discountPrice =
-                promoActive && (rawDiscount != null || computedDiscount != null)
-                  ? rawDiscount ?? computedDiscount
-                  : null;
-              const price =
-                discountPrice != null &&
-                originalPrice != null &&
-                discountPrice < originalPrice
-                  ? discountPrice
-                  : originalPrice ?? discountPrice;
-
-              if (price == null) {
-                return best;
-              }
-
-              if (!best || price < best.price) {
-                return {
-                  originalPrice,
-                  discountPrice,
-                  price,
-                };
-              }
-              return best;
-            }, null);
+            const pricing = getProductPricingSummary(item);
 
             return {
               id: item._id,
@@ -79,15 +37,11 @@ export const PopularProductCarousel = () => {
               title: item.nameProduct,
               rating: item.rating,
               link: `/producto/${item.slug || item._id}`,
-              price: bestVariant?.price ?? null,
-              originalPrice: bestVariant?.originalPrice ?? null,
-              discountPrice: bestVariant?.discountPrice ?? null,
-              hasDiscount:
-                promoActive &&
-                bestVariant?.discountPrice != null &&
-                bestVariant?.originalPrice != null &&
-                bestVariant.discountPrice < bestVariant.originalPrice,
-              promoPercentage: promoActive ? promo?.percentage : null,
+              price: pricing.display,
+              originalPrice: pricing.original,
+              discountPrice: pricing.discount,
+              hasDiscount: pricing.hasDiscount,
+              promoPercentage: pricing.percentage,
             };
           });
 
@@ -124,8 +78,6 @@ export const PopularProductCarousel = () => {
     return <div className="alert alert-info">No hay productos disponibles</div>;
   }
 
-  const formatPrice = (value) => (Number.isFinite(value) ? value.toFixed(2) : "N/A");
-
   return (
     <div className="cs-carousel cs-nav-outside position-relative">
       <Swiper
@@ -160,7 +112,7 @@ export const PopularProductCarousel = () => {
                 </a>
 
                 <div className="card-product-widgets-top">
-                  {product.promoPercentage && (
+                  {product.promoPercentage > 0 && (
                     <span className="badge product-badge badge-danger">-{product.promoPercentage}%</span>
                   )}
                   {product.rating > 0 && (
@@ -189,11 +141,11 @@ export const PopularProductCarousel = () => {
 
                 <div className="d-flex align-items-center">
                   <span className={`h5 d-inline-block mb-0 ${product.hasDiscount ? "text-danger" : ""}`}>
-                    ${formatPrice(product.price)}
+                    ${formatProductPrice(product.price)}
                   </span>
                   {product.hasDiscount && (
                     <del className="d-inline-block ml-2 pl-1 text-muted">
-                      ${formatPrice(product.originalPrice)}
+                      ${formatProductPrice(product.originalPrice)}
                     </del>
                   )}
                 </div>

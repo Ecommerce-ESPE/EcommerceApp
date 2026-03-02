@@ -8,6 +8,7 @@ import {
   resolveTagNames,
   sanitizeProduct,
 } from "../../utils/catalogDisplay";
+import { formatProductPrice, getProductPricingSummary } from "../../utils/productPricing";
 
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
@@ -149,8 +150,7 @@ const SearchPage = () => {
       {!loading && !error && hydratedItems.length > 0 && (
         <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-4">
           {hydratedItems.map((item) => {
-            const firstValue = item?.value?.[0];
-            const price = Number(firstValue?.discountPrice ?? firstValue?.originalPrice ?? 0);
+            const pricing = getProductPricingSummary(item);
             const itemPath = `/producto/${encodeURIComponent(item?._id || item?.slug || "")}`;
 
             return (
@@ -176,7 +176,9 @@ const SearchPage = () => {
                     {Array.isArray(item.tagNames) && item.tagNames.length > 0 ? (
                       <div className="text-muted font-size-xs mb-2">#{item.tagNames.slice(0, 3).join(" #")}</div>
                     ) : null}
-                    <div className="font-weight-bold mb-3">${price.toFixed(2)}</div>
+                    <div className="font-weight-bold mb-3">
+                      ${formatProductPrice(pricing.display)}
+                    </div>
                     <Link to={itemPath} className="btn btn-primary btn-sm mt-auto">
                       Ver producto
                     </Link>

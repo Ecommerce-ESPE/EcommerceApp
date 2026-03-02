@@ -5,6 +5,7 @@ import { CartContext } from "../../context/cartContext";
 import { notyf } from "../../../utils/notifications";
 import ProductCard from "../catalogo/ProductCard";
 import { Helmet } from "@dr.pogodin/react-helmet";
+import { getVariantPricing } from "../../utils/productPricing";
 
 const PromoResolvePage = () => {
   const { addToCart } = useContext(CartContext);
@@ -56,14 +57,7 @@ const PromoResolvePage = () => {
 
   const products = useMemo(() => {
     const list = state.data?.products || [];
-    return list.map((product) => ({
-      ...product,
-      value: (product.value || []).map((variant) => ({
-        ...variant,
-        discountPrice: variant.discountPrice ?? variant.promoPrice ?? null,
-        originalPrice: variant.originalPrice ?? variant.price ?? null,
-      })),
-    }));
+    return list;
   }, [state.data]);
 
   const bestSellers = useMemo(() => {
@@ -84,26 +78,7 @@ const PromoResolvePage = () => {
     if (!sizeId) return notyf.error("Por favor seleccione un tamano");
     const size = product.value?.find((v) => v._id === sizeId);
     if (!size) return notyf.error("Tamano no disponible");
-
-    const now = new Date();
-    const startDate = new Date(product.promotion?.startDate);
-    const endDate = new Date(product.promotion?.endDate);
-    const promoActive =
-      product.promotion?.active &&
-      !Number.isNaN(startDate.getTime()) &&
-      !Number.isNaN(endDate.getTime()) &&
-      now >= startDate &&
-      now <= endDate;
-
-    const hasDiscount =
-      promoActive &&
-      size.discountPrice != null &&
-      size.originalPrice != null &&
-      size.discountPrice < size.originalPrice;
-
-    const price = hasDiscount
-      ? size.discountPrice
-      : size.originalPrice ?? size.discountPrice ?? 0;
+    const price = getVariantPricing(size).display ?? 0;
 
     addToCart({
       id: `${product._id}-${sizeId}`,

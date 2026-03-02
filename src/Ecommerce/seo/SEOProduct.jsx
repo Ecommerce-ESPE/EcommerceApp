@@ -1,6 +1,9 @@
 import { Helmet } from "@dr.pogodin/react-helmet";
+import { useStoreSettings } from "../context/storeSettingsContext";
 
 export default function SEOProduct({ product }) {
+  const { settings } = useStoreSettings();
+
   if (!product || !product.slug || !product.name) {
     return null; // Evita renderizar si faltan datos importantes
   }
@@ -12,12 +15,13 @@ export default function SEOProduct({ product }) {
   const description = (product.description || "Compra este producto en nuestra tienda online.")
     .replace(/<[^>]+>/g, "")
     .slice(0, 160);
+  const storeName = settings?.business?.name || "Createx Shop";
 
   //console.log("SEOProduct renderizado con:", { product});
   return (
     <Helmet>
       {/* Título y descripción */}
-      <title>{`${product.name} | Createx Shop`}</title>
+      <title>{`${product.name} | ${storeName}`}</title>
       <meta name="description" content={description} />
 
       {/* Canonical */}

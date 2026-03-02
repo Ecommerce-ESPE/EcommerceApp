@@ -9,6 +9,7 @@ import { CartShop } from "../../components/carshop";
 import { Helmet } from "@dr.pogodin/react-helmet";
 import CatalogBreadcrumbs from "./CatalogBreadcrumbs.jsx";
 import { getVariantPricing } from "../../utils/productPricing";
+import { useStoreSettings } from "../../context/storeSettingsContext";
 
 const CatalogComponent = () => {
   const {
@@ -36,6 +37,8 @@ const CatalogComponent = () => {
     clearFilters,
     loading,
   } = useCatalog();
+  const { settings } = useStoreSettings();
+  const storeName = settings?.business?.name || "Createx Shop";
 
   const [selectedSizes, setSelectedSizes] = useState({});
 
@@ -81,7 +84,7 @@ const CatalogComponent = () => {
   return (
     <>
       <Helmet>
-        <title>Catálogo | Createx Shop</title>
+        <title>{`Catalogo | ${storeName}`}</title>
         <meta
           name="description"
           content="Explora nuestro catálogo de productos y encuentra lo que necesitas."
