@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { CartShop } from "../../Ecommerce/components/carshop";
 import { CartContext } from "../../Ecommerce/context/cartContext";
 import { useAuth } from "../../auth/authContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../../assets/img/ecommerce/logo.svg";
 import avatar from "../../assets/img/ecommerce/home/categories/03.jpg";
 import { notyf } from "../../utils/notifications";
@@ -29,7 +29,7 @@ const initialMenuData = {
       id: 3,
       title: "Promociones",
       type: "promotions",
-      url: "/promotions",
+      url: "/promociones",
     },
     {
       id: 4,
@@ -105,6 +105,7 @@ const initialMenuData = {
 export const NavbarComponent = () => {
   const { cart, setShowCart } = useContext(CartContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, wallet } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const { total: wishlistTotal } = useWishlist();
@@ -182,6 +183,12 @@ export const NavbarComponent = () => {
     navigate("/login");
     notyf.success("Sesión cerrada correctamente");
   };
+  const isCurrentPath = (url) => {
+    const currentPath = location?.pathname || "";
+    const targetPath = String(url || "").trim();
+    if (!targetPath) return false;
+    return currentPath === targetPath;
+  };
   return (
     <>
       <header className="cs-header">
@@ -191,12 +198,12 @@ export const NavbarComponent = () => {
         >
           <div className="container px-0 ">
             {/* Logo */}
-            <a
-              href="/"
+            <Link
+              to="/home"
               className="navbar-brand order-lg-1 mr-0 pr-lg-3 mr-lg-4"
             >
               <img src={storeLogo} alt={storeName} width="130" />
-            </a>
+            </Link>
 
             {/* Buscador Desktop */}
             <div
@@ -217,10 +224,10 @@ export const NavbarComponent = () => {
               <ul className="nav nav-tools flex-nowrap">
                 {/* Wishlist */}
                 <li className="nav-item d-lg-block d-none mb-0">
-                  <a href="/wishlist" className="nav-tool">
+                  <Link to="/wishlist" className="nav-tool">
                     <i className="cxi-heart nav-tool-icon"></i>
                     <span className="nav-tool-label">{user ? wishlistTotal : 0}</span>
-                  </a>
+                  </Link>
                 </li>
 
                 {/* Carrito */}
@@ -299,12 +306,12 @@ export const NavbarComponent = () => {
                           Mi perfil
                         </Link>
 
-                        <a
+                        <Link
                           className="dropdown-item d-flex align-items-center"
-                          href="/configuracion"
+                          to="/account/settings"
                         >
                           <i className="cxi-settings mr-2"></i> Configuración
-                        </a>
+                        </Link>
                         <button
                           className="dropdown-item d-flex align-items-center"
                           onClick={handleLogout}
@@ -314,15 +321,15 @@ export const NavbarComponent = () => {
                       </div>
                     </>
                   ) : (
-                    <a
-                      href="/login"
+                    <Link
+                      to="/login"
                       className="nav-tool d-flex align-items-center"
                     >
                       <i className="cxi-profile nav-tool-icon mr-2"></i>
                       <span className="font-size-sm text-nowrap">
                         Iniciar sesión
                       </span>
-                    </a>
+                    </Link>
                   )}
                 </li>
 
@@ -376,9 +383,12 @@ export const NavbarComponent = () => {
                   if (item.type === "link") {
                     return (
                       <li className="nav-item" key={item.id}>
-                        <a href={item.url} className="nav-link">
+                        <Link
+                          to={item.url}
+                          className={`nav-link ${isCurrentPath(item.url) ? "active" : ""}`}
+                        >
                           {item.title}
-                        </a>
+                        </Link>
                       </li>
                     );
                   }
@@ -396,9 +406,12 @@ export const NavbarComponent = () => {
                         <ul className="dropdown-menu">
                           {item.children.map((child) => (
                             <li key={child.id}>
-                              <a href={child.url} className="dropdown-item">
+                              <Link
+                                to={child.url}
+                                className={`dropdown-item ${isCurrentPath(child.url) ? "active" : ""}`}
+                              >
                                 {child.title}
-                              </a>
+                              </Link>
                             </li>
                           ))}
                         </ul>
@@ -409,12 +422,14 @@ export const NavbarComponent = () => {
                   if (item.type === "promotions") {
                     return (
                       <li className="nav-item" key={item.id}>
-                        <a
-                          href={item.url}
-                          className="nav-link active font-weight-bold"
+                        <Link
+                          to={item.url}
+                          className={`nav-link font-weight-bold ${
+                            isCurrentPath(item.url) ? "active" : ""
+                          }`}
                         >
                           {item.title}
-                        </a>
+                        </Link>
                       </li>
                     );
                   }

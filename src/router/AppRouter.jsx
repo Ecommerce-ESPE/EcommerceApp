@@ -1,7 +1,7 @@
 ﻿// src/router/AppRouter.jsx
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { HomeComponent } from "../Ecommerce/pages/home/home";
-import { NavbarComponent } from '../shared';
+import { FooterComponent, NavbarComponent } from '../shared';
 import { CatalogoComponent } from "../Ecommerce/pages/catalogo/catalogo";
 import { Checkout } from "../Ecommerce/pages/checkout/Checkouts";
 import { CartShop } from '../Ecommerce/components/carshop';
@@ -16,6 +16,7 @@ import {PageNotFound} from '../shared/index'; // Importamos la pagina 404
 import { RegisterPage } from "../auth/register/register";
 import PromoResolvePage from "../Ecommerce/pages/promo/PromoResolvePage";
 import SearchPage from "../Ecommerce/pages/search/SearchPage";
+import PromotionsPage from "../Ecommerce/pages/promotions/PromotionsPage";
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -58,6 +59,8 @@ export const AppRouter = () => {
       <Routes>
         <Route path="/" element={<Navigate to='/home' />} />
         <Route path="home" element={<HomeComponent />} />
+        <Route path="promotions" element={<PromotionsPage />} />
+        <Route path="promociones" element={<PromotionsPage />} />
         <Route path="shop/:section/:slug" element={<PromoResolvePage />} />
         <Route path="shop" element={<CatalogComponent />} />
         <Route path="buscar" element={<SearchPage />} />
@@ -90,6 +93,7 @@ export const AppRouter = () => {
         {/* Ruta para manejar todas las paginas no encontradas */}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      <FooterComponent />
     </>
   );
 };
