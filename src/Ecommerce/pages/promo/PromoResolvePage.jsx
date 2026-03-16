@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { API_BASE } from "../../services/api";
 import { CartContext } from "../../context/cartContext";
@@ -6,6 +6,11 @@ import { notyf } from "../../../utils/notifications";
 import ProductCard from "../catalogo/ProductCard";
 import { Helmet } from "@dr.pogodin/react-helmet";
 import { getVariantPricing } from "../../utils/productPricing";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 const PromoResolvePage = () => {
   const { addToCart } = useContext(CartContext);
@@ -211,28 +216,35 @@ const PromoResolvePage = () => {
             >
               <div className="p-4 p-md-5 text-white h-100 d-flex flex-column justify-content-between">
                 <div>
-                  <span className="badge badge-light text-dark mb-3">
-                    {promo?.estado === "enCurso" ? "En curso" : "Promo"}
-                  </span>
-                  <h1 className="display-5 mb-3 font-weight-bold">
+                  <div className="d-flex flex-wrap align-items-center mb-3" style={{ gap: "8px" }}>
+                    <span className="badge badge-light text-dark text-uppercase">
+                      {promo?.estado === "enCurso" ? "En curso" : promo?.estado === "proximo" ? "Proximamente" : "Promo"}
+                    </span>
+                    {promo?.tipo && (
+                      <span className="badge badge-danger text-uppercase">{promo.tipo}</span>
+                    )}
+                  </div>
+                  {promo?.subtitle ? (
+                    <h5 className="text-uppercase mb-2 text-primary h6" style={{ letterSpacing: "1px" }}>
+                      {promo.subtitle}
+                    </h5>
+                  ) : null}
+                  <h1 className="display-4 mb-4 font-weight-bold text-white" style={{ whiteSpace: "pre-line" }}>
                     {promo?.title || "Promocion"}
                   </h1>
-                  <p className="lead mb-4" style={{ maxWidth: "520px" }}>
-                    {promo?.subtitle || "Encuentra lo mejor de esta promocion"}
-                  </p>
                 </div>
-                <div className="d-flex flex-wrap align-items-center gap-3">
+                <div className="d-flex flex-wrap align-items-center">
                   {promo?.promotionPercentage != null && (
-                    <span className="badge badge-danger p-2">
+                    <span className="badge badge-danger p-2 mr-3 mb-2">
                       -{promo.promotionPercentage}%
                     </span>
                   )}
                   {promoDates.start && promoDates.end && (
-                    <span className="small text-white-50">
+                    <span className="small text-white-50 mr-3 mb-2">
                       Vigencia: {promoDates.start.toLocaleDateString()} - {promoDates.end.toLocaleDateString()}
                     </span>
                   )}
-                  <span className="small text-white-50">
+                  <span className="small text-white-50 mb-2">
                     {products.length} productos
                   </span>
                 </div>
@@ -258,7 +270,7 @@ const PromoResolvePage = () => {
               <div className="position-relative p-4 p-md-5 text-white h-100 d-flex flex-column justify-content-between">
                 <div>
                   <p className="text-uppercase small mb-2">Categoria destacada</p>
-                  <h2 className="h3 mb-2">{category?.name || "Categoria"}</h2>
+                  <h2 className="h3 mb-2 text-white">{category?.name || "Categoria"}</h2>
                   <p className="text-white-50 mb-0">
                     {category?.description || "Explora las mejores opciones de esta promo"}
                   </p>
@@ -278,15 +290,7 @@ const PromoResolvePage = () => {
         </div>
 
         {bestSellers.length > 0 && (
-          <section
-            className="mb-5"
-            style={{
-              background:
-                "linear-gradient(120deg, rgba(15,23,42,0.08), rgba(15,23,42,0.0))",
-              borderRadius: "18px",
-              padding: "20px",
-            }}
-          >
+          <section className="mb-2">
             <div className="d-flex align-items-center justify-content-between mb-3">
               <div>
                 <p className="text-uppercase small text-muted mb-1">
@@ -296,96 +300,59 @@ const PromoResolvePage = () => {
               </div>
               <span className="small text-muted">Top {bestSellers.length}</span>
             </div>
-            <div className="position-relative">
-              <div
-                className="position-absolute top-0 h-100"
-                style={{
-                  left: 0,
-                  width: "48px",
-                  background:
-                    "linear-gradient(90deg, rgba(248,250,252,1), rgba(248,250,252,0))",
-                  zIndex: 2,
-                  pointerEvents: "none",
+            <div className="position-relative cs-carousel cs-nav-outside">
+              <Swiper
+                modules={[Navigation, Autoplay]}
+                autoplay={{ delay: 3500, disableOnInteraction: false }}
+                loop={bestSellers.length > 4}
+                spaceBetween={20}
+                navigation
+                breakpoints={{
+                  0: { slidesPerView: 1 },
+                  420: { slidesPerView: 2 },
+                  600: { slidesPerView: 3 },
+                  900: { slidesPerView: 4 },
                 }}
-              />
-              <div
-                className="position-absolute top-0 h-100"
-                style={{
-                  right: 0,
-                  width: "48px",
-                  background:
-                    "linear-gradient(270deg, rgba(248,250,252,1), rgba(248,250,252,0))",
-                  zIndex: 2,
-                  pointerEvents: "none",
-                }}
-              />
-              <div
-                ref={carouselRef}
-                className="d-flex flex-nowrap overflow-auto pb-2 promo-carousel"
-                style={{
-                  gap: "18px",
-                  scrollSnapType: "x mandatory",
-                  scrollBehavior: "smooth",
-                  paddingLeft: "8px",
-                  paddingRight: "8px",
-                }}
+                className="pb-1"
               >
-              {bestSellers.map((product, index) => {
-                const selectedSize = product.value?.find(
-                  (v) => v._id === selectedSizes[product._id]
-                );
-                return (
-                  <div
-                    key={`top-${product._id}`}
-                    className="position-relative"
-                    style={{
-                      minWidth: "260px",
-                      flex: "0 0 auto",
-                      transform: "scale(1.03)",
-                      scrollSnapAlign: "start",
-                    }}
-                    data-carousel-item="true"
-                  >
-                    <span
-                      className="badge badge-warning text-dark position-absolute"
-                      style={{
-                        top: "10px",
-                        left: "10px",
-                        zIndex: 3,
-                      }}
-                    >
-                      Top {index + 1}
-                    </span>
-                    <ProductCard
-                      product={product}
-                      selectedSize={selectedSize}
-                      onSizeChange={(sizeId) =>
-                        handleSizeChange(product._id, sizeId)
-                      }
-                      onAddToCart={handleAddToCart}
-                    />
-                  </div>
-                );
-              })}
-              </div>
-            </div>
-            <div className="d-flex justify-content-center mt-3" style={{ gap: "8px" }}>
-              {bestSellers.map((product, index) => (
-                <span
-                  key={`dot-${product._id}`}
-                  style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "999px",
-                    backgroundColor: index === carouselIndex ? "#111827" : "#cbd5f5",
-                    transition: "transform 0.2s ease, background-color 0.2s ease",
-                    transform: index === carouselIndex ? "scale(1.2)" : "scale(1)",
-                    display: "inline-block",
-                  }}
-                />
-              ))}
+                {bestSellers.map((product, index) => {
+                  const selectedSize = product.value?.find(
+                    (v) => v._id === selectedSizes[product._id]
+                  );
+                  return (
+                    <SwiperSlide key={`top-${product._id}`}>
+                      <div className="position-relative h-100">
+                        <span
+                          className="badge badge-warning text-dark position-absolute"
+                          style={{ top: "10px", left: "10px", zIndex: 3 }}
+                        >
+                          Top {index + 1}
+                        </span>
+                        <ProductCard
+                          product={product}
+                          selectedSize={selectedSize}
+                          onSizeChange={(sizeId) =>
+                            handleSizeChange(product._id, sizeId)
+                          }
+                          onAddToCart={handleAddToCart}
+                        />
+                      </div>
+                    </SwiperSlide>
+                  );
+                })}
+              </Swiper>
             </div>
           </section>
+        )}
+
+        {bestSellers.length > 0 && products.length > 0 && (
+          <div className="mb-4 pt-1">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <h2 className="h4 mb-0 text-primary font-weight-bold" style={{ letterSpacing: "-0.5px" }}>
+                Todos los productos en promoción
+              </h2>
+            </div>
+          </div>
         )}
 
         {products.length === 0 ? (

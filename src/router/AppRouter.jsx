@@ -1,4 +1,4 @@
-﻿// src/router/AppRouter.jsx
+// src/router/AppRouter.jsx
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { HomeComponent } from "../Ecommerce/pages/home/home";
 import { FooterComponent, NavbarComponent } from '../shared';
@@ -62,6 +62,7 @@ export const AppRouter = () => {
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="promociones" element={<PromotionsPage />} />
         <Route path="shop/:section/:slug" element={<PromoResolvePage />} />
+        <Route path="shop/:slug" element={<PromoResolvePage />} />
         <Route path="shop" element={<CatalogComponent />} />
         <Route path="buscar" element={<SearchPage />} />
         <Route path="search" element={<SearchPage />} />
