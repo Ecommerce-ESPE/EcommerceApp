@@ -45,10 +45,11 @@ const buildCatalogUrl = (filters = {}) => {
 export const resolveCategoryByToken = (categories, token) => {
   const needle = normalizeToken(token);
   if (!needle) return null;
+  const slugNeedle = toSlug(token);
   return (
     categories.find((cat) => normalizeToken(cat?._id) === needle) ||
     categories.find((cat) => normalizeToken(cat?.slug) === needle) ||
-    categories.find((cat) => normalizeToken(cat?.name) === needle) ||
+    categories.find((cat) => toSlug(cat?.name) === slugNeedle) ||
     null
   );
 };
@@ -56,6 +57,7 @@ export const resolveCategoryByToken = (categories, token) => {
 export const resolveSubcategoryByToken = (categories, token, categoryMatch) => {
   const needle = normalizeToken(token);
   if (!needle) return null;
+  const slugNeedle = toSlug(token);
 
   const subPool = categoryMatch?.subcategories?.length
     ? categoryMatch.subcategories
@@ -64,7 +66,7 @@ export const resolveSubcategoryByToken = (categories, token, categoryMatch) => {
   return (
     subPool.find((sub) => normalizeToken(sub?._id) === needle) ||
     subPool.find((sub) => normalizeToken(sub?.slug) === needle) ||
-    subPool.find((sub) => normalizeToken(sub?.name) === needle) ||
+    subPool.find((sub) => toSlug(sub?.name) === slugNeedle) ||
     null
   );
 };
@@ -72,9 +74,10 @@ export const resolveSubcategoryByToken = (categories, token, categoryMatch) => {
 export const resolveBrandByToken = (brandsCatalog, token) => {
   const needle = normalizeToken(token);
   if (!needle) return null;
+  const slugNeedle = toSlug(token);
   return (
     brandsCatalog.find((brand) => normalizeToken(brand?.slug) === needle) ||
-    brandsCatalog.find((brand) => normalizeToken(brand?.name) === needle) ||
+    brandsCatalog.find((brand) => toSlug(brand?.name) === slugNeedle) ||
     null
   );
 };
